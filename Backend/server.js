@@ -4,22 +4,26 @@ const dotenv = require('dotenv');
 const sequelize = require('./config/db'); 
 const authRoutes = require('./routes/authRoutes');
 
+// Cargamos variables de entorno (JWT_SECRET, DB_PASSWORD, etc.)
 dotenv.config();
 
 const app = express();
 
 // --- Middlewares Globales ---
 
-// Configuramos CORS para abrir el puente con tu Frontend de Vite
+// Configuramos CORS para el Frontend de Vite (Puerto 5173)
 app.use(cors({
-    origin: 'http://localhost:5173', // Puerto de tu Frontend
+    origin: 'http://localhost:5173', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
 
-app.use(express.json()); // Permite leer los datos que manda el formulario de React
+// Permite leer JSON en las peticiones (Vital para el Login y Registro)
+app.use(express.json()); 
 
 // --- Rutas de la Aplicación ---
+
+// Conectamos las rutas de autenticación y los nuevos filtros de roles
 app.use('/api/auth', authRoutes);
 
 // --- Verificación de Conexión a la DB ---
@@ -31,13 +35,12 @@ sequelize.authenticate()
         console.error('❌ Error al conectar a la base de datos:', err);
     });
 
-// Ruta simple para probar en el navegador
+// Ruta de prueba inicial
 app.get('/', (req, res) => {
-    res.send('🚀 El servidor de Hugo Moreno está escuchando en el puerto 50644');
+    res.send('🚀 El servidor de Hugo David Moreno Llamas está escuchando en el puerto 50644');
 });
 
 // --- Encender Servidor ---
-// Forzamos el puerto 50644 para que coincida con tu Frontend y Postman
 const PORT = 50644; 
 app.listen(PORT, () => {
     console.log(`🚀 Servidor encendido en: http://localhost:${PORT}`);

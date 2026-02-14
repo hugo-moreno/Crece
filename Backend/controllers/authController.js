@@ -1,26 +1,23 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt'); // Necesario para encriptar
+const bcrypt = require('bcrypt');
 
 // --- REGISTRO DE USUARIOS ---
 exports.register = async (req, res) => {
     try {
         const { nombre_completo, email, password, role } = req.body;
 
-        // Validar si el usuario ya existe
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) return res.status(400).json({ message: "El correo ya está registrado" });
 
-        // Encriptar contraseña
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Crear en la DB
         const newUser = await User.create({
             nombre_completo,
             email,
             password: hashedPassword,
-            role: role || 'User' // Rol por defecto
+            role: role || 'User'
         });
 
         res.status(201).json({ success: true, message: "Usuario creado" });
@@ -37,16 +34,16 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ where: { email } });
         if (!user) return res.status(404).json({ message: "Usuario no existe" });
 
-        // IMPORTANTE: Ahora comparamos usando bcrypt
         const validPassword = await bcrypt.compare(password, user.password);
         
         if (!validPassword) {
             return res.status(401).json({ message: "Password incorrecto" });
         }
 
+        // Firmamos el token usando tu JWT_SECRET del .env
         const token = jwt.sign(
             { id: user.id, role: user.role },
-            process.env.JWT_SECRET || 'secret_temporal',
+            process.env.JWT_SECRET,
             { expiresIn: '2h' }
         );
 
