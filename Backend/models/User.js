@@ -21,15 +21,14 @@ const User = sequelize.define('User', {
     },
     password: {
         type: DataTypes.STRING,
-        field: 'PASSWORD', // Asegúrate que en SQLyog sea minúsculas como en tus capturas previas
+        // CAMBIO AQUÍ: Debe ser minúsculas para coincidir con SQLyog
+        field: 'password', 
         allowNull: false,
         validate: {
-            // Regra 1: Longitud entre 13 y 15 caracteres
             len: {
                 args: [13, 15],
                 msg: "La contraseña debe tener entre 13 y 15 caracteres."
             },
-            // Regla 2: Mayúsculas, minúsculas y carácter especial
             isComplex(value) {
                 const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/;
                 if (!regex.test(value)) {

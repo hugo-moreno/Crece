@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const sequelize = require('./config/db'); 
 const authRoutes = require('./routes/authRoutes');
+const courseRoutes = require('./routes/courseRoutes'); // Importamos las nuevas rutas de cursos
+const Course = require('./models/course'); // Importamos el modelo para la sincronización
 
 // Cargamos variables de entorno (JWT_SECRET, DB_PASSWORD, etc.)
 dotenv.config();
@@ -23,16 +25,26 @@ app.use(express.json());
 
 // --- Rutas de la Aplicación ---
 
-// Conectamos las rutas de autenticación y los nuevos filtros de roles
+// Rutas de autenticación (Login, Registro, Perfil, Roles)
 app.use('/api/auth', authRoutes);
 
-// --- Verificación de Conexión a la DB ---
+// Rutas de cursos (CRUD para la Escuela Virtual)
+app.use('/api/courses', courseRoutes);
+
+// --- Verificación y Sincronización de la DB ---
 sequelize.authenticate()
     .then(() => {
         console.log('✅ Conexión exitosa a la base de datos en SQLyog');
+        
+        // Sincronizamos los modelos con las tablas de la DB
+        // 'alter: true' ajusta las tablas si les haces cambios en el código
+        return sequelize.sync({ alter: true });
+    })
+    .then(() => {
+        console.log('📅 Tablas de Usuarios y Cursos sincronizadas correctamente');
     })
     .catch(err => {
-        console.error('❌ Error al conectar a la base de datos:', err);
+        console.error('❌ Error en la base de datos:', err);
     });
 
 // Ruta de prueba inicial
