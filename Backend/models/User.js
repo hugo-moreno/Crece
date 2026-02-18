@@ -14,30 +14,44 @@ const User = sequelize.define('User', {
     email: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true
+        unique: true,
+        validate: {
+            isEmail: { msg: "Debe ser un correo electrónico válido." }
+        }
     },
-    // En tu captura de SQLyog la columna se llama 'PASSWORD' (mayúsculas)
     password: {
         type: DataTypes.STRING,
-        field: 'PASSWORD', 
-        allowNull: false
+        field: 'PASSWORD', // Asegúrate que en SQLyog sea minúsculas como en tus capturas previas
+        allowNull: false,
+        validate: {
+            // Regra 1: Longitud entre 13 y 15 caracteres
+            len: {
+                args: [13, 15],
+                msg: "La contraseña debe tener entre 13 y 15 caracteres."
+            },
+            // Regla 2: Mayúsculas, minúsculas y carácter especial
+            isComplex(value) {
+                const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/;
+                if (!regex.test(value)) {
+                    throw new Error("La contraseña debe incluir mayúsculas, minúsculas y al menos un carácter especial.");
+                }
+            }
+        }
     },
-    // En tu captura la columna se llama 'ROLE' (mayúsculas)
     role: {
         type: DataTypes.ENUM('Admin', 'Staff', 'User'),
-        field: 'ROLE', 
+        field: 'role', 
         defaultValue: 'User'
     },
-    // Cambiamos el nombre del campo para que coincida con 'fecha_registro'
     fechaRegistro: {
         type: DataTypes.DATE,
         field: 'fecha_registro',
         defaultValue: DataTypes.NOW
     }
 }, {
-    tableName: 'users', // Nombre de la tabla en SQLyog
+    tableName: 'users',
     freezeTableName: true,
-    timestamps: false // Como usas 'fecha_registro' manualmente, desactivamos los automáticos
+    timestamps: false 
 });
 
 module.exports = User;
