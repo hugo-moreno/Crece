@@ -10,6 +10,7 @@ const styles = `
     --gray-100: #f7f8fa; --gray-300: #d4d8de; --gray-500: #8a9099; --gray-800: #1e2530;
   }
   body, html { font-family: 'DM Sans', sans-serif; background: var(--gray-100); color: var(--gray-800); margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+  
   .dash-nav {
     position: sticky; top: 0; z-index: 100;
     background: var(--white); border-bottom: 1px solid var(--gray-300);
@@ -122,14 +123,17 @@ const styles = `
     display: flex; justify-content: space-between; align-items: center;
     padding-top: 1rem; border-top: 1px solid var(--gray-300);
   }
+  
   .badge-disponible {
     font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.7rem;
     background: var(--blue-mist); color: var(--blue-mid); border: 1px solid var(--blue-pale);
   }
+
   .badge-completado {
     font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.7rem;
     background: #e6ffed; color: #28a745; border: 1px solid #b7eb8f;
   }
+
   .curso-arrow {
     width: 28px; height: 28px; background: var(--blue-dark); color: var(--white);
     display: flex; align-items: center; justify-content: center;
@@ -165,7 +169,8 @@ export default function Dashboard() {
     completados: 0,
     disponibles: cursosDisponibles.length,
     promedio: "—",
-    idsUsuario: [] 
+    idsUsuario: [],
+    detallesCursos: {} // Recibimos el objeto { cursoId: estado }
   });
 
   const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
@@ -209,8 +214,13 @@ export default function Dashboard() {
   };
 
   const handleCourseClick = async (id) => {
-    // Si el curso ya está en la lista del usuario, solo navegamos.
-    // Si no, intentamos inscribirlo para que suba el contador "En progreso".
+    // Si el curso ya ha sido finalizado, tal vez quieras enviarlo al certificado directamente
+    if (stats.detallesCursos?.[id] === 'completado') {
+        navigate(`/certificado/${id}`);
+        return;
+    }
+
+    // Si no está en la lista, inscribimos como 'cursando'
     if (!stats.idsUsuario?.includes(id)) {
       try {
         await fetch(`${API_URL}/api/stats/inscribir`, {
@@ -219,16 +229,13 @@ export default function Dashboard() {
           body: JSON.stringify({ usuarioId: usuario.id, cursoId: id })
         });
       } catch (e) {
-        console.log("Error silencioso al inscribir");
+        console.log("Error al inscribir");
       }
     }
     navigate(`/curso/${id}`);
   };
 
-  // 1. FILTRADO: Cursos que el usuario NO ha tocado
   const disponiblesFiltrados = cursosDisponibles.filter(c => !stats.idsUsuario?.includes(c.id));
-  
-  // 2. MIS CURSOS: Cursos que el usuario ya inició o terminó
   const misCursosReal = cursosDisponibles.filter(c => stats.idsUsuario?.includes(c.id));
 
   const displayName = usuario?.nombre || "Usuario";
@@ -290,17 +297,22 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="cursos-grid">
-            {misCursosReal.map((curso, i) => (
-              <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.id)}>
-                <div className="curso-nivel">{curso.nivel}</div>
-                <div className="curso-titulo">{curso.titulo}</div>
-                <div className="curso-instructor">{curso.instructor}</div>
-                <div className="curso-footer">
-                  <div className="badge-completado">En tu lista</div>
-                  <div className="curso-arrow">→</div>
+            {misCursosReal.map((curso, i) => {
+              const estado = stats.detallesCursos?.[curso.id];
+              return (
+                <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.id)}>
+                  <div className="curso-nivel">{curso.nivel}</div>
+                  <div className="curso-titulo">{curso.titulo}</div>
+                  <div className="curso-instructor">{curso.instructor}</div>
+                  <div className="curso-footer">
+                    <div className={estado === 'completado' ? "badge-completado" : "badge-disponible"}>
+                      {estado === 'completado' ? '✓ Finalizado' : 'En progreso'}
+                    </div>
+                    <div className="curso-arrow">→</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
