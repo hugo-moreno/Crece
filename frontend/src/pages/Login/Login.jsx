@@ -220,21 +220,25 @@ export default function Login() {
     setGlobalError("");
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
+
+    // --- CORRECCIÓN DE URL PARA PRODUCCIÓN ---
+    const API_BASE_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
+
     try {
-      const res = await fetch("http://localhost:3001/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, password: form.password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Credenciales incorrectas.");
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("usuario", JSON.stringify(data.usuario || { nombre: form.email }));
-      navigate("/dashboard");
+      // Guardamos el token y los datos que responde tu backend
+localStorage.setItem("token", data.token);
+localStorage.setItem("role", data.role); // Importante para saber si es Admin o Usernavigate("/dashboard");
     } catch (err) {
       setGlobalError(err.message);
     } finally {
