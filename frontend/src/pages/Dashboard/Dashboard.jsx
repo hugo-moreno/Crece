@@ -165,7 +165,7 @@ export default function Dashboard() {
     completados: 0,
     disponibles: cursosDisponibles.length,
     promedio: "—",
-    idsUsuario: [] // Guardaremos los IDs de los cursos que el usuario ya tiene
+    idsUsuario: [] 
   });
 
   const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
@@ -209,24 +209,26 @@ export default function Dashboard() {
   };
 
   const handleCourseClick = async (id) => {
-    // 1. Antes de navegar, intentamos inscribir al usuario para que suba el contador "En progreso"
-    try {
-      await fetch(`${API_URL}/api/stats/inscribir`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuarioId: usuario.id, cursoId: id })
-      });
-    } catch (e) {
-      console.log("Ya estaba inscrito o error silencioso");
+    // Si el curso ya está en la lista del usuario, solo navegamos.
+    // Si no, intentamos inscribirlo para que suba el contador "En progreso".
+    if (!stats.idsUsuario?.includes(id)) {
+      try {
+        await fetch(`${API_URL}/api/stats/inscribir`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuarioId: usuario.id, cursoId: id })
+        });
+      } catch (e) {
+        console.log("Error silencioso al inscribir");
+      }
     }
-    
     navigate(`/curso/${id}`);
   };
 
-  // 2. FILTRADO: Cursos que el usuario NO ha terminado ni está cursando
+  // 1. FILTRADO: Cursos que el usuario NO ha tocado
   const disponiblesFiltrados = cursosDisponibles.filter(c => !stats.idsUsuario?.includes(c.id));
   
-  // 3. MIS CURSOS: Cursos que el usuario SÍ tiene activos o terminados
+  // 2. MIS CURSOS: Cursos que el usuario ya inició o terminó
   const misCursosReal = cursosDisponibles.filter(c => stats.idsUsuario?.includes(c.id));
 
   const displayName = usuario?.nombre || "Usuario";
@@ -238,9 +240,9 @@ export default function Dashboard() {
       <style>{styles}</style>
 
       <nav className="dash-nav">
-        <a className="nav-brand" onClick={() => navigate("/")} style={{cursor: 'pointer'}}>
+        <div className="nav-brand" onClick={() => navigate("/")} style={{cursor: 'pointer'}}>
           <img src="/logo2.png" alt="Crece Online" />
-        </a>
+        </div>
         <div className="nav-right">
           <div className="nav-avatar">{initials}</div>
           <span className="nav-name">{displayName}</span>

@@ -10,26 +10,32 @@ router.get('/dashboard/:usuarioId', async (req, res) => {
     try {
         const { usuarioId } = req.params;
         
-        // Contamos basándonos en el estado del modelo Inscripcion
-        const enProgreso = await Inscripcion.count({ where: { usuarioId, estado: 'cursando' } });
-        const completados = await Inscripcion.count({ where: { usuarioId, estado: 'completado' } });
-        
-        // Calculamos el promedio real de las calificaciones de los cursos completados
-        const inscripcionesCompletadas = await Inscripcion.findAll({ 
-            where: { usuarioId, estado: 'completado' } 
+        // Buscamos todas las inscripciones (cursando y completadas)
+        const todasLasInscripciones = await Inscripcion.findAll({ 
+            where: { usuarioId } 
         });
 
+        // Filtramos para obtener los contadores
+        const enProgreso = todasLasInscripciones.filter(i => i.estado === 'cursando').length;
+        const completadas = todasLasInscripciones.filter(i => i.estado === 'completado');
+
+        // CLAVE: Creamos un array con solo los IDs de los cursos del usuario
+        // Esto servirá para el filtrado en el Dashboard.jsx
+        const idsUsuario = todasLasInscripciones.map(i => i.cursoId);
+        
+        // Calculamos el promedio real de los cursos completados
         let promedioStr = "—";
-        if (inscripcionesCompletadas.length > 0) {
-            const suma = inscripcionesCompletadas.reduce((acc, curr) => acc + curr.calificacion, 0);
-            promedioStr = `${Math.round(suma / inscripcionesCompletadas.length)}%`;
+        if (completadas.length > 0) {
+            const suma = completadas.reduce((acc, curr) => acc + curr.calificacion, 0);
+            promedioStr = `${Math.round(suma / completadas.length)}%`;
         }
         
         res.json({
             enProgreso,
-            completados,
-            disponibles: 6, // Tus 6 cursos base
-            promedio: promedioStr
+            completados: completadas.length,
+            disponibles: 6,
+            promedio: promedioStr,
+            idsUsuario // <-- El Frontend usará esto para filtrar las listas
         });
     } catch (error) {
         console.error('Error en dashboard stats:', error);
@@ -45,13 +51,21 @@ router.post('/inscribir', async (req, res) => {
     try {
         const { usuarioId, cursoId } = req.body;
 
-        // Buscamos si ya existe para no duplicar
+        if (!usuarioId || !cursoId) {
+            return res.status(400).json({ error: 'Faltan datos obligatorios' });
+        }
+
+        // findOrCreate: si no existe lo crea, si existe lo ignora
         const [inscripcion, created] = await Inscripcion.findOrCreate({
             where: { usuarioId, cursoId },
             defaults: { estado: 'cursando' }
         });
 
-        res.json({ message: created ? 'Inscrito con éxito' : 'Ya estás cursando este curso', inscripcion });
+        res.json({ 
+            success: true,
+            message: created ? 'Inscrito con éxito' : 'Ya estás cursando este curso', 
+            inscripcion 
+        });
     } catch (error) {
         console.error('Error al inscribir:', error);
         res.status(500).json({ error: 'Error al iniciar el curso' });
@@ -66,16 +80,19 @@ router.post('/finalizar', async (req, res) => {
     try {
         const { usuarioId, cursoId, calificacion } = req.body;
 
-        // Buscamos la inscripción existente
+        if (!usuarioId || !cursoId) {
+            return res.status(400).json({ error: 'ID de usuario o curso no detectado' });
+        }
+
         let inscripcion = await Inscripcion.findOne({ where: { usuarioId, cursoId } });
 
         if (inscripcion) {
-            // Si ya existe, actualizamos a completado
+            // Actualizamos registro existente
             inscripcion.estado = 'completado';
             inscripcion.calificacion = calificacion;
             await inscripcion.save();
         } else {
-            // Si por alguna razón no existía el registro de 'cursando', lo creamos directo
+            // Si no existía el registro de inicio, lo creamos directamente como completado
             inscripcion = await Inscripcion.create({
                 usuarioId,
                 cursoId,
@@ -84,7 +101,7 @@ router.post('/finalizar', async (req, res) => {
             });
         }
 
-        res.json({ message: 'Curso finalizado y guardado con éxito', inscripcion });
+        res.json({ success: true, message: 'Curso finalizado y guardado con éxito', inscripcion });
     } catch (error) {
         console.error('Error al finalizar curso:', error);
         res.status(500).json({ error: 'Error al procesar la finalización' });
