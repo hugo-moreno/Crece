@@ -74,8 +74,7 @@ exports.login = async (req, res) => {
             return res.status(401).json({ success: false, message: "Contraseña incorrecta" });
         }
 
-        // 3. Generar TOKEN
-        // CRÍTICO: Si process.env.JWT_SECRET no existe en Railway, esto dará Error 500
+       // 3. Generar TOKEN
         if (!process.env.JWT_SECRET) {
             console.error("ERROR: No se encontró la variable JWT_SECRET en el entorno.");
             return res.status(500).json({ success: false, message: "Error de configuración en el servidor" });
@@ -87,14 +86,15 @@ exports.login = async (req, res) => {
             { expiresIn: '2h' }
         );
 
-        // 4. Respuesta exitosa
+        // 4. RESPUESTA EXITOSA (CORREGIDA)
         return res.json({ 
             success: true,
             token: token, 
+            id: user.id,           // <--- AGREGAMOS ESTA LÍNEA CLAVE
             role: user.role,
-            nombre: user.nombre_completo // Enviamos el nombre para el Dashboard
+            nombre: user.nombre_completo 
         });
-
+        
     } catch (error) {
         console.error("Error en login:", error);
         return res.status(500).json({ success: false, message: "Error interno en el servidor" });
