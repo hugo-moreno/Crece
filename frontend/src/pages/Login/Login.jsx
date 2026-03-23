@@ -219,15 +219,17 @@ export default function Login() {
     setErrors({ ...errors, [e.target.name]: "" });
     setGlobalError("");
   };
+
 const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
 
-    // 1. Usamos tu URL de Railway (La de tus compas decía localhost)
     const API_BASE_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
 
     try {
+      console.log("Intentando login en:", API_BASE_URL);
+      
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -235,31 +237,31 @@ const handleSubmit = async () => {
       });
       
       const data = await res.json();
+      
       if (!res.ok) throw new Error(data.message || "Credenciales incorrectas.");
 
-      // 2. Guardamos el Token (Vital para el PrivateRoute)
+      // --- EL BLINDAJE DE SEGURIDAD ---
+      // 1. Guardamos el token exacto que pide el PrivateRoute
       localStorage.setItem("token", data.token);
       
-      // 3. Guardamos el objeto Usuario con los campos que espera el código de tus compas (rol)
-      // y los que espera el tuyo (role). Ponemos ambos para no fallar.
-      const usuarioData = data.usuario || data.user || {};
-      const nombreFinal = data.nombre || usuarioData.nombre_completo || usuarioData.nombre || form.email;
-      const rolFinal = data.role || usuarioData.role || usuarioData.rol || 'User';
+      // 2. Guardamos el role para el AdminRoute
+      const userRole = data.role || data.rol || 'User';
+      localStorage.setItem("role", userRole);
 
+      // 3. Guardamos el objeto usuario completo (por si las moscas)
       localStorage.setItem("usuario", JSON.stringify({
-        nombre: nombreFinal,
-        rol: rolFinal, // Para el código de ellos
-        role: rolFinal, // Para tu base de datos
-        id: usuarioData.id || data.id || null
+        nombre: data.nombre || data.nombre_completo || "Usuario",
+        rol: userRole,
+        role: userRole
       }));
 
-      // 4. Guardamos el role suelto para que el AdminRoute lo encuentre rápido
-      localStorage.setItem("role", rolFinal); 
-      
-      // 5. ¡A darle al Dashboard!
+      console.log("Token guardado correctamente. Redirigiendo...");
+
+      // 4. Redirigimos
       navigate("/dashboard");
 
     } catch (err) {
+      console.error("Error en login:", err.message);
       setGlobalError(err.message);
     } finally {
       setLoading(false);
