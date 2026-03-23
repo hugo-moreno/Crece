@@ -315,11 +315,6 @@ export default function Landing() {
                   ))}
                 </div>
               </div>
-
-              <div className="card-progress">
-                <div className="progress-label"><span>Tu progreso</span><span>{progress}%</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${progress}%` }}></div></div>
-              </div>
             </div>
           </div>
         </div>
