@@ -1,7 +1,8 @@
-FROM node:20-alpine
+FROM node:18-alpine
 WORKDIR /app
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
-COPY . .
+COPY frontend/ .
 EXPOSE 5173
-CMD ["npm", "run", "dev", "--", "--host"]
+# Si usas Vite, asegúrate de que el comando sea el correcto para producción
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
