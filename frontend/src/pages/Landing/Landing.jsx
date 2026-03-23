@@ -118,6 +118,58 @@ const styles = `
     .footer-top { grid-template-columns: 1fr 1fr; gap: 2rem; } .footer { padding: 3rem 2rem 2rem; }
     .section-header { flex-direction: column; gap: 1rem; } .section-subtitle { text-align: left; }
   }
+  
+  .testimonials-container {
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    max-width: 400px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .testimonial-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+  }
+
+  .testimonial-card {
+    min-width: 100%;
+    padding: 10px;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .user-img {
+    width: 45px;
+    height: 45px;
+    background: var(--blue-pale);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: var(--blue-dark);
+  }
+
+  .testimonial-text {
+    font-style: italic;
+    color: var(--gray-800);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--blue-dark);
+  }
 `;
 
 const IconoWeb = () => (
@@ -162,16 +214,57 @@ const cursos = [
 
 export default function Landing() {
   const [progress, setProgress] = useState(0);
+  const [resenas, setResenas] = useState([]); 
+  const [resenaIndex, setResenaIndex] = useState(0);
   const navigate = useNavigate();
 
-  useEffect(() => { setTimeout(() => setProgress(72), 500); }, []);
+  useEffect(() => {
+    // 1. Animación del progreso
+    setTimeout(() => setProgress(72), 500);
+
+    // 2. Traer reseñas (Solo una vez al cargar)
+    const fetchResenas = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
+        const res = await fetch(`${API_URL}/api/resenas/publicas`);
+        const data = await res.json();
+        
+        if (data && data.length > 0) {
+          setResenas(data);
+        } else {
+          throw new Error("No hay reseñas");
+        }
+      } catch (err) {
+        // Respaldo por si falla el servidor
+        setResenas([
+          { nombre: "Regina Hernández", texto: "¡Excelente plataforma!" },
+          { nombre: "Leonel Martínez", texto: "Cursos muy prácticos." },
+          { nombre: "Susana Morales", texto: "Me encantó la flexibilidad." }
+        ]);
+      }
+    };
+
+    fetchResenas();
+  }, []);
+
+  useEffect(() => {
+    // 3. Temporizador del carrusel
+    if (resenas.length > 0) {
+      const interval = setInterval(() => {
+        setResenaIndex((prev) => (prev + 1) % resenas.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [resenas.length]);
 
   return (
     <>
       <style>{styles}</style>
-
+      
       <nav className="nav">
-        <div className="nav-logo"><img src="logo.png" alt="Crece Online" /></div>
+        <div className="nav-logo">
+          <img src="/logo2.png" alt="Crece Online" />
+        </div>
         <ul className="nav-links">
           <li><a href="#cursos">Cursos</a></li>
           <li><a href="#sobre">Nosotros</a></li>
@@ -190,30 +283,49 @@ export default function Landing() {
             <button className="btn-secondary" onClick={() => document.getElementById('cursos').scrollIntoView({ behavior: 'smooth' })}>Ver cursos</button>
           </div>
           <div className="hero-stats">
-            <div><div className="stat-num">4</div><div className="stat-label">Estudiantes activos</div></div>
-            <div><div className="stat-num">6</div><div className="stat-label">Cursos disponibles</div></div>
+            <div><div className="stat-num">2.4k</div><div className="stat-label">Estudiantes</div></div>
+            <div><div className="stat-num">6</div><div className="stat-label">Cursos</div></div>
             <div><div className="stat-num">98%</div><div className="stat-label">Satisfacción</div></div>
           </div>
         </div>
+
         <div className="hero-right">
           <div className="hero-image-box">
             <div className="hero-card">
-              <div className="card-icon" style={{ width: 10, height: 10, background: 'var(--blue-light)', marginBottom: '1.2rem' }}></div>
-              <div className="card-title">Tu progreso esta semana</div>
-              <div className="card-desc">Desarrollo Web desde Cero — Módulo 4 de 7</div>
-              <div className="card-progress">
-                <div className="progress-label"><span>Progreso general</span><span>{progress}%</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${progress}%` }}></div></div>
+              <div className="card-title">Comunidad Crece</div>
+              <p className="card-desc" style={{ marginBottom: '1rem', fontSize: '0.8rem' }}>Lo que dicen tus compañeros:</p>
+
+              <div style={{ overflow: 'hidden', marginBottom: '1.5rem', height: '85px' }}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    transition: 'transform 0.6s ease',
+                    transform: `translateX(-${resenaIndex * 100}%)` 
+                  }}
+                >
+                  {resenas.map((res, i) => (
+                    <div key={i} style={{ minWidth: '100%', paddingRight: '10px' }}>
+                      <div style={{ fontWeight: '600', fontSize: '0.85rem', color: 'var(--blue-mid)' }}>
+                        {res.nombre}
+                      </div>
+                      <p style={{ fontStyle: 'italic', fontSize: '0.8rem', color: '#666', lineHeight: '1.4' }}>
+                        "{res.texto}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="floating-badge">
-                <div className="badge-num" style={{ width: 8, height: 8, background: 'var(--blue-pale)', marginBottom: '0.4rem' }}></div>
-                <div className="badge-text">Racha de 7 días</div>
+
+              <div className="card-progress">
+                <div className="progress-label"><span>Tu progreso</span><span>{progress}%</span></div>
+                <div className="progress-bar"><div className="progress-fill" style={{ width: `${progress}%` }}></div></div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Aquí siguen tus secciones de Cursos, Sobre y Footer que ya tienes */}
       <section className="cursos" id="cursos">
         <div className="section-header">
           <div><div className="section-tag">Catálogo</div><h2 className="section-title">Cursos destacados</h2></div>
@@ -221,7 +333,7 @@ export default function Landing() {
         </div>
         <div className="cursos-grid">
           {cursos.map((curso, i) => (
-            <div className="curso-card" key={i}>
+            <div className="curso-card" key={i} onClick={() => navigate('/login')} style={{cursor: 'pointer'}}>
               <div className="curso-icono">{curso.icono}</div>
               <div className="curso-nivel">{curso.nivel}</div>
               <div className="curso-titulo">{curso.titulo}</div>
@@ -239,25 +351,12 @@ export default function Landing() {
         <div className="sobre-left">
           <div className="section-tag">Sobre nosotros</div>
           <h2 className="section-title" style={{ color: 'white' }}>Educación que<br />transforma vidas</h2>
-          <p className="sobre-text">Crece Online nació con una misión clara: hacer que el aprendizaje profesional sea accesible, práctico y efectivo para todos en México y América Latina. Cada curso está diseñado para que aprendas haciendo.</p>
-          <div className="sobre-values">
-            {[
-              { text: "Contenido práctico con proyectos reales" },
-              { text: "Aprende a tu ritmo, sin horarios fijos" },
-              { text: "Comunidad activa de estudiantes y mentores" },
-              { text: "Certificados reconocidos por empresas" }
-            ].map((v, i) => (
-              <div className="value-item" key={i}>
-                <span style={{ width: 6, height: 6, background: 'var(--blue-light)', display: 'inline-block', flexShrink: 0 }}></span>
-                <span className="value-text">{v.text}</span>
-              </div>
-            ))}
-          </div>
+          <p className="sobre-text">Crece Online nació con una misión clara: hacer que el aprendizaje profesional sea accesible, práctico y efectivo para todos.</p>
         </div>
         <div className="sobre-right">
           {[
-            { num: "2,4", suffix: "K+", label: "Estudiantes activos" },
-            { num: "48", suffix: "", label: "Cursos disponibles" },
+            { num: "2.4", suffix: "K+", label: "Estudiantes activos" },
+            { num: "6", suffix: "", label: "Cursos disponibles" },
             { num: "96", suffix: "%", label: "Tasa de satisfacción" },
             { num: "3", suffix: " años", label: "De experiencia" }
           ].map((m, i) => (
@@ -272,38 +371,19 @@ export default function Landing() {
       <footer className="footer">
         <div className="footer-top">
           <div>
-            <div className="footer-logo"><img src="/logo.png" alt="Crece Online" /></div>
-            <p className="footer-desc">La plataforma de aprendizaje en línea diseñada para profesionales que quieren crecer sin límites.</p>
+            <div className="footer-logo"><img src="/logo2.png" alt="Crece Online" /></div>
+            <p className="footer-desc">Plataforma educativa diseñada para el éxito profesional.</p>
           </div>
           <div>
             <div className="footer-col-title">Plataforma</div>
             <ul className="footer-links">
-              <li><a href="#">Cursos</a></li><li><a href="#">Instructores</a></li>
-              <li><a href="#">Certificados</a></li><li><a href="#">Blog</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="footer-col-title">Empresa</div>
-            <ul className="footer-links">
-              <li><a href="#">Sobre nosotros</a></li><li><a href="#">Carreras</a></li>
-              <li><a href="#">Prensa</a></li><li><a href="#">Contacto</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="footer-col-title">Legal</div>
-            <ul className="footer-links">
-              <li><a href="#">Privacidad</a></li><li><a href="#">Términos</a></li><li><a href="#">Cookies</a></li>
+              <li><a href="#cursos">Cursos</a></li>
+              <li><a href="#">Certificados</a></li>
             </ul>
           </div>
         </div>
         <div className="footer-bottom">
-          <div className="footer-copy">© 2026 Crece Online / UTSC / Desarrollo Web Integral. Todos los derechos reservados.</div>
-          <div className="social-links">
-            <a href="#" className="social-link">𝕏</a>
-            <a href="#" className="social-link">in</a>
-            <a href="#" className="social-link">▶</a>
-            <a href="#" className="social-link">◎</a>
-          </div>
+          <div className="footer-copy">© 2026 Crece Online / UTSC Santa Catarina.</div>
         </div>
       </footer>
     </>
