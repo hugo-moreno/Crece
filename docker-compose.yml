@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+
+  # ── Base de datos MySQL ──────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: creceonline-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: creceonline
+      MYSQL_USER: creceonline_user
+      MYSQL_PASSWORD: crece1234
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+
+  # ── Backend Node.js ──────────────────────────────────
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: creceonline-backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: creceonline
+      DB_USER: creceonline_user
+      DB_PASSWORD: crece1234
+      JWT_SECRET: creceonline_jwt_secret_2026
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Frontend React + Vite ────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: creceonline-frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
