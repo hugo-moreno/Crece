@@ -136,26 +136,31 @@ export default function Register() {
     setGlobalError("");
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
-    // Definimos la dirección de Railway. Si no la encuentra, usa la de respaldo.
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
 
-const res = await fetch(`${API_BASE_URL}/api/auth/register`, {method: "POST",
+    const API_BASE_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre_completo: `${form.nombre} ${form.apellido}`,
           email: form.email,
           password: form.password,
-          rol: "alumno",
+          role: "User",
         }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Error al registrarse.");
+
       setSuccess(true);
       setTimeout(() => navigate("/login"), 2000);
+// AQUÍ ESTABA TU ERROR (Línea 159):
     } catch (err) {
       setGlobalError(err.message);
     } finally {
