@@ -4,10 +4,17 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/db'); 
+
+// --- Importación de Rutas ---
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
-const resenaRoutes = require('./routes/resenaRoutes'); // <-- IMPORTANTE: Nueva ruta de reseñas
+const resenaRoutes = require('./routes/resenaRoutes');
+const statsRoutes = require('./routes/statsRoutes'); 
+
+// --- Importación de Modelos ---
+// Importamos Inscripcion para que Sequelize lo registre antes del .sync()
 const Course = require('./models/course');
+const Inscripcion = require('./models/Inscripcion'); 
 
 const app = express();
 
@@ -22,7 +29,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // --- Middlewares Globales ---
 app.use(cors({
-    origin: true, // Permite cualquier origen para evitar errores de CORS en Railway
+    origin: true, 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
@@ -32,7 +39,8 @@ app.use(express.json());
 // --- Rutas ---
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
-app.use('/api/resenas', resenaRoutes); // <-- IMPORTANTE: Activamos el endpoint de reseñas
+app.use('/api/resenas', resenaRoutes);
+app.use('/api/stats', statsRoutes); 
 
 app.get('/', (req, res) => {
     res.send('🚀 El servidor de Hugo David Moreno Llamas está escuchando correctamente en Railway');
@@ -47,7 +55,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     sequelize.authenticate()
         .then(() => {
             console.log('✅ Conexión exitosa a la base de datos en Railway (MySQL)');
-            // Sincronizar modelos con la DB
+            // Sincronizar modelos: alter: true permite agregar la tabla Inscripcion sin borrar datos existentes
             return sequelize.sync({ alter: true });
         })
         .then(() => {
