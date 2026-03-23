@@ -152,14 +152,13 @@ const styles = `
     .dash-nav { width: 100%; }
   }
 `;
-
 const cursosDisponibles = [
-  { nivel: "Principiante", titulo: "Word desde Cero",                 instructor: "Leonel Martínez" },
-  { nivel: "Avanzado",     titulo: "Excel y Análisis de Datos",        instructor: "Susana Morales" },
-  { nivel: "Principiante", titulo: "PowerPoint desde Cero",            instructor: "Susana Morales" },
-  { nivel: "Principiante", titulo: "Administración y Finanzas",        instructor: "Leonel Martínez" },
-  { nivel: "Principiante", titulo: "Introducción a Lengua de Señas",   instructor: "Hugo Moreno" },
-  { nivel: "Avanzado",     titulo: "Marketing Digital",                instructor: "Alexis Alfano" },
+  { id: 1, nivel: "Principiante", titulo: "Word desde Cero", instructor: "Leonel Martínez" },
+  { id: 2, nivel: "Avanzado", titulo: "Excel y Análisis de Datos", instructor: "Susana Morales" },
+  { id: 3, nivel: "Principiante", titulo: "PowerPoint desde Cero", instructor: "Susana Morales" },
+  { id: 4, nivel: "Principiante", titulo: "Administración y Finanzas", instructor: "Leonel Martínez" },
+  { id: 5, nivel: "Principiante", titulo: "Introducción a Lengua de Señas", instructor: "Hugo Moreno" },
+  { id: 6, nivel: "Avanzado", titulo: "Marketing Digital", instructor: "Alexis Alfano" },
 ];
 
 export default function Dashboard() {
@@ -171,11 +170,7 @@ export default function Dashboard() {
     if (!token) { navigate("/login"); return; }
     
     try {
-      // Decodificamos el token
       const payload = JSON.parse(atob(token.split(".")[1]));
-      
-      // CORRECCIÓN: Tu backend envía 'nombre' en el token, no 'nombre_completo'
-      // También verificamos si guardamos algo en localStorage como respaldo
       const localUser = JSON.parse(localStorage.getItem("usuario"));
       
       setUsuario({
@@ -189,13 +184,10 @@ export default function Dashboard() {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("role");
+    localStorage.clear();
     navigate("/login");
   };
 
-  // Función para las iniciales corregida
   const getInitials = (nombre) => {
     if (!nombre || nombre === "Usuario") return "U";
     const parts = nombre.trim().split(" ");
@@ -208,12 +200,9 @@ export default function Dashboard() {
   const firstName = displayName.split(" ")[0];
   const initials = getInitials(displayName);
 
-  // Función para manejar el clic en los cursos
-  const handleCourseClick = (titulo) => {
-    // Aquí puedes redirigir a la página del curso específico
-    // Por ahora, lo mandamos a una ruta genérica de visualización
-    const slug = titulo.toLowerCase().replace(/ /g, "-");
-    navigate(`/cursos/${slug}`);
+  // FUNCIÓN CORREGIDA: Solo una versión que usa el ID
+  const handleCourseClick = (id) => {
+    navigate(`/curso/${id}`);
   };
 
   return (
@@ -270,7 +259,7 @@ export default function Dashboard() {
         <div className="section-label" style={{ marginTop: "3rem" }}>Cursos disponibles</div>
         <div className="cursos-grid">
           {cursosDisponibles.map((curso, i) => (
-            <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.titulo)}>
+            <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.id)}>
               <div className="curso-nivel">{curso.nivel}</div>
               <div className="curso-titulo">{curso.titulo}</div>
               <div className="curso-instructor">{curso.instructor}</div>
