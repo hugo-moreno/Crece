@@ -12,7 +12,6 @@ export default function Opiniones() {
     e.preventDefault();
     setCargando(true);
     try {
-      // URL de tu backend en Railway
       const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
       const res = await fetch(`${API_URL}/api/resenas/crear`, {
         method: "POST",
@@ -22,7 +21,6 @@ export default function Opiniones() {
 
       if (res.ok) {
         setEnviado(true);
-        // Regresa a la landing tras 3 segundos para ver la reseña
         setTimeout(() => navigate("/"), 3000); 
       } else {
         alert("Hubo un problema al guardar tu opinión. Intenta de nuevo.");
@@ -38,7 +36,7 @@ export default function Opiniones() {
   return (
     <div style={{ 
       minHeight: "100vh", 
-      backgroundColor: "#0d2a4a", // Fondo azul oscuro de tu marca
+      backgroundColor: "#0d2a4a", 
       display: "flex", 
       alignItems: "center", 
       justifyContent: "center",
@@ -46,16 +44,16 @@ export default function Opiniones() {
       fontFamily: "'DM Sans', sans-serif"
     }}>
       <div style={{ 
-        backgroundColor: "white", 
+        backgroundColor: "#ffffff", 
         padding: "3rem", 
         borderRadius: "12px", 
         width: "100%", 
         maxWidth: "500px",
-        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.91)",
+        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
         position: "relative",
         animation: "fadeUp 0.5s ease both"
       }}>
-        {/* Botón sutil para cerrar/volver */}
+        {/* Botón para volver */}
         <button 
           onClick={() => navigate("/")}
           style={{
@@ -64,7 +62,7 @@ export default function Opiniones() {
             right: "1.5rem",
             background: "none",
             border: "none",
-            color: "#ccc",
+            color: "#888",
             fontSize: "1.2rem",
             cursor: "pointer",
             padding: "5px"
@@ -95,23 +93,22 @@ export default function Opiniones() {
           }}>
             <div style={{fontSize: "3rem", marginBottom: "1rem"}}>🚀</div>
             <p style={{fontWeight: "600", marginBottom: "0.5rem"}}>¡Gracias por compartir!</p>
-            <p style={{fontSize: "0.9rem", color: "#666"}}>Tu reseña se ha guardado y aparecerá en la página principal.</p>
-            <p style={{fontSize: "0.8rem", color: "#999", marginTop: "1rem"}}>Redirigiendo...</p>
+            <p style={{fontSize: "0.9rem", color: "#666"}}>Tu reseña aparecerá en la página principal.</p>
           </div>
         ) : (
           <>
-            <p style={{ color: "#666", textAlign: "center", marginBottom: "2.5rem", fontSize: "1rem", lineHeight: "1.6" }}>
-              Escribe qué te ha parecido <span style={{color: "#3b9ee8", fontWeight: "600"}}>Crece Online</span>. Tu comentario inspirará a otros estudiantes.
+            <p style={{ color: "#555", textAlign: "center", marginBottom: "2.5rem", fontSize: "1rem", lineHeight: "1.6" }}>
+              Escribe qué te ha parecido <span style={{color: "#3b9ee8", fontWeight: "600"}}>Crece Online</span>.
             </p>
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.8rem" }}>
               <style>{`
-                input:focus, textarea:focus { border-color: #3b9ee8 !important; outline: none; box-shadow: 0 0 0 3px rgba(59,158,232,0.1); }
+                input:focus, textarea:focus { border-color: #3b9ee8 !important; outline: none; }
                 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
               `}</style>
               
               <div style={{position: "relative"}}>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#e5e5e5", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#0d2a4a", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Nombre Completo
                 </label>
                 <input 
@@ -119,22 +116,41 @@ export default function Opiniones() {
                   required 
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  style={{ width: "100%", padding: "14px", border: "2px solid #eee", borderRadius: "8px", fontSize: "1rem", transition: "0.2s" }}
+                  style={{ 
+                    width: "100%", 
+                    padding: "14px", 
+                    border: "2px solid #ddd", 
+                    borderRadius: "8px", 
+                    fontSize: "1rem", 
+                    backgroundColor: "#ffffff",
+                    color: "#333"
+                  }}
                   placeholder="Ej. Regina Hernández"
                 />
               </div>
               
               <div style={{position: "relative"}}>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#efefef", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Tu Reseña (Sé breve y claro)
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#0d2a4a", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Tu Reseña
                 </label>
                 <textarea 
                   required 
                   value={texto}
                   onChange={(e) => setTexto(e.target.value)}
-                  maxLength="120" // Límite para que no se rompa el carrusel
-                  style={{ width: "100%", padding: "14px", border: "2px solid #eee", borderRadius: "8px", fontSize: "1rem", minHeight: "120px", resize: "none", transition: "0.2s", lineHeight: "1.5" }}
-                  placeholder="¿Qué aprendiste hoy? ¿Qué fue lo que más te gustó?"
+                  maxLength="120"
+                  style={{ 
+                    width: "100%", 
+                    padding: "14px", 
+                    border: "2px solid #ddd", 
+                    borderRadius: "8px", 
+                    fontSize: "1rem", 
+                    minHeight: "120px", 
+                    resize: "none",
+                    backgroundColor: "#ffffff",
+                    color: "#333",
+                    lineHeight: "1.5"
+                  }}
+                  placeholder="¿Qué aprendiste hoy?"
                 />
                 <div style={{fontSize: "0.7rem", color: "#999", textAlign: "right", marginTop: "4px"}}>
                   {texto.length} / 120 caracteres
@@ -154,7 +170,7 @@ export default function Opiniones() {
                   fontSize: "1rem",
                   cursor: cargando ? "not-allowed" : "pointer",
                   transition: "all 0.3s",
-                  boxShadow: cargando ? "none" : "0 4px 12px rgba(13,42,74,0.2)"
+                  boxShadow: "0 4px 12px rgba(13,42,74,0.2)"
                 }}
               >
                 {cargando ? "PUBLICANDO..." : "PUBLICAR RESEÑA →"}
@@ -166,4 +182,3 @@ export default function Opiniones() {
     </div>
   );
 }
-// Actualización de colores para entrega UTSC
