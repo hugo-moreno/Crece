@@ -84,31 +84,44 @@ export default function Certificado() {
 
   // FUNCIÓN PARA GUARDAR PROGRESO EN BD
   const finalizarCurso = async () => {
-    try {
-      // Reemplaza con tu URL real de Railway
-      const API_URL = "https://respectful-manifestation-production-5441.up.railway.app"; 
-      
-      const response = await fetch(`${API_URL}/api/stats/finalizar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          usuarioId: usuario.id,
-          cursoId: id,
-          calificacion: Math.round((correctas / total) * 100)
-        })
-      });
+  try {
+    // 1. Extraemos el usuario y verificamos qué trae exactamente
+    const storageUser = JSON.parse(localStorage.getItem("usuario") || "{}");
+    
+    // Intentamos obtener el ID de varias formas por si acaso
+    const userId = storageUser.id || storageUser.usuarioId || storageUser.id_usuario;
 
-      if (response.ok) {
-        alert("¡Felicidades! Tu progreso ha sido guardado exitosamente.");
-        navigate('/dashboard');
-      } else {
-        alert("Error al guardar el progreso.");
-      }
-    } catch (error) {
-      console.error("Error al finalizar:", error);
-      alert("No se pudo conectar con el servidor.");
+    if (!userId) {
+      console.error("No se encontró el ID del usuario en localStorage", storageUser);
+      alert("Error de sesión: No se pudo identificar al usuario. Intenta cerrar sesión y volver a entrar.");
+      return;
     }
-  };
+
+    const API_URL = "https://respectful-manifestation-production-5441.up.railway.app"; 
+    
+    const response = await fetch(`${API_URL}/api/stats/finalizar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuarioId: userId, // Ahora enviamos el userId verificado
+        cursoId: id,
+        calificacion: Math.round((correctas / total) * 100)
+      })
+    });
+
+    if (response.ok) {
+      alert("¡Felicidades! Tu progreso ha sido guardado exitosamente.");
+      navigate('/dashboard');
+    } else {
+      const errorData = await response.json();
+      console.error("Error del servidor:", errorData);
+      alert("Error al guardar el progreso en el servidor.");
+    }
+  } catch (error) {
+    console.error("Error de conexión:", error);
+    alert("No se pudo conectar con el servidor.");
+  }
+};
 
   const descargarPDF = () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });

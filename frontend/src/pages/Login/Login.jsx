@@ -228,8 +228,6 @@ const handleSubmit = async () => {
     const API_BASE_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
 
     try {
-      console.log("Intentando login en:", API_BASE_URL);
-      
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -240,24 +238,25 @@ const handleSubmit = async () => {
       
       if (!res.ok) throw new Error(data.message || "Credenciales incorrectas.");
 
-      // --- EL BLINDAJE DE SEGURIDAD ---
-      // 1. Guardamos el token exacto que pide el PrivateRoute
+      // --- EL BLINDAJE DE SEGURIDAD CORREGIDO ---
       localStorage.setItem("token", data.token);
       
-      // 2. Guardamos el role para el AdminRoute
       const userRole = data.role || data.rol || 'User';
       localStorage.setItem("role", userRole);
 
-      // 3. Guardamos el objeto usuario completo (por si las moscas)
+      // 1. IMPORTANTE: Guardamos el ID que viene del backend
+      // Verifica si tu backend lo manda como 'id' o 'usuarioId'
+      const userId = data.id || data.usuarioId || (data.user ? data.user.id : null);
+
+      // 2. Guardamos el objeto usuario COMPLETO con su ID
       localStorage.setItem("usuario", JSON.stringify({
+        id: userId, // <--- ESTA LÍNEA ES LA QUE REPARA EL ERROR 500
         nombre: data.nombre || data.nombre_completo || "Usuario",
         rol: userRole,
         role: userRole
       }));
 
-      console.log("Token guardado correctamente. Redirigiendo...");
-
-      // 4. Redirigimos
+      console.log("Sesión iniciada para ID:", userId);
       navigate("/dashboard");
 
     } catch (err) {
