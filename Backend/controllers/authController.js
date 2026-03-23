@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Inscripcion = require('../models/Inscripcion'); // Importación necesaria para las estadísticas
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
@@ -17,7 +18,6 @@ exports.register = async (req, res) => {
         }
 
         // 2. VALIDACIÓN PREVIA (Texto plano)
-        // Usamos el modelo para validar los 13-15 caracteres antes de encriptar
         const userValidation = User.build({ nombre_completo, email, password, role: role || 'User' });
         
         try {
@@ -34,7 +34,6 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // 4. CREACIÓN
-        // IMPORTANTE: role debe coincidir con User, Admin o Staff
         await User.create({
             nombre_completo,
             email,
@@ -74,7 +73,7 @@ exports.login = async (req, res) => {
             return res.status(401).json({ success: false, message: "Contraseña incorrecta" });
         }
 
-       // 3. Generar TOKEN
+        // 3. Generar TOKEN
         if (!process.env.JWT_SECRET) {
             console.error("ERROR: No se encontró la variable JWT_SECRET en el entorno.");
             return res.status(500).json({ success: false, message: "Error de configuración en el servidor" });
@@ -86,11 +85,11 @@ exports.login = async (req, res) => {
             { expiresIn: '2h' }
         );
 
-        // 4. RESPUESTA EXITOSA (CORREGIDA)
+        // 4. RESPUESTA EXITOSA
         return res.json({ 
             success: true,
             token: token, 
-            id: user.id,           // <--- AGREGAMOS ESTA LÍNEA CLAVE
+            id: user.id,
             role: user.role,
             nombre: user.nombre_completo 
         });
@@ -101,14 +100,32 @@ exports.login = async (req, res) => {
     }
 };
 
-// Obtener todos los usuarios para el panel de Admin
+// --- OBTENER USUARIOS CON ESTADÍSTICAS (PARA ADMIN) ---
 exports.getAllUsers = async (req, res) => {
     try {
+        // 1. Obtenemos los usuarios base
         const users = await User.findAll({
-            attributes: ['id', 'nombre_completo', 'email', 'role'] // Solo enviamos lo necesario
+            attributes: ['id', 'nombre_completo', 'email', 'role']
         });
-        res.json(users);
+
+        // 2. Cruzamos con la tabla Inscripcion para contar certificados completados
+        const usersWithStats = await Promise.all(users.map(async (user) => {
+            const certCount = await Inscripcion.count({
+                where: { 
+                    usuarioId: user.id, 
+                    estado: 'completado' 
+                }
+            });
+            
+            return {
+                ...user.toJSON(),
+                completados: certCount // Enviamos el conteo real al frontend
+            };
+        }));
+
+        res.json(usersWithStats);
     } catch (error) {
+        console.error("Error al obtener usuarios con certificados:", error);
         res.status(500).json({ message: "Error al obtener usuarios" });
     }
 };

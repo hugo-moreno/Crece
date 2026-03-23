@@ -36,12 +36,14 @@ const styles = `
 
   .table-wrap { background: white; margin-bottom: 2rem; border: 1px solid var(--gray-300); }
   table { width: 100%; border-collapse: collapse; }
-  th { background: var(--gray-100); padding: 0.7rem 1.5rem; text-align: left; font-size: 0.72rem; color: var(--gray-500); border-bottom: 1px solid var(--gray-300); }
+  th { background: var(--gray-100); padding: 0.7rem 1.5rem; text-align: left; font-size: 0.72rem; color: var(--gray-500); border-bottom: 1px solid var(--gray-300); text-transform: uppercase; letter-spacing: 0.05em; }
   td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--gray-300); font-size: 0.85rem; }
 
   .role-badge { display: inline-block; padding: 0.2rem 0.7rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; border-radius: 4px; }
   .badge-admin { background: var(--blue-dark); color: white; }
   .badge-user { background: var(--gray-100); color: var(--gray-500); border: 1px solid var(--gray-300); }
+  
+  .cert-count-pill { background: var(--blue-mist); color: var(--blue-mid); padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 700; font-size: 0.75rem; border: 1px solid var(--blue-pale); }
 `;
 
 function getInitials(name) {
@@ -63,7 +65,6 @@ export default function Admin() {
   const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
 
   useEffect(() => {
-    // PROTECCIÓN DE RUTA: Solo Admins
     if (localStorage.getItem('role') !== 'Admin') {
       navigate('/dashboard');
       return;
@@ -72,11 +73,11 @@ export default function Admin() {
     const fetchUsuarios = async () => {
       try {
         const response = await fetch(`${API_URL}/api/auth/users`);
-        if (!response.ok) throw new Error("Error en la red");
+        if (!response.ok) throw new Error("Error en la respuesta del servidor");
         const data = await response.json();
         setUsuarios(data);
         
-        // Calculamos certificados totales si tuvieras ese campo en la DB
+        // Sumamos todos los certificados completados de la lista de usuarios
         const totalCertificados = data.reduce((acc, u) => acc + (u.completados || 0), 0);
         setStats(prev => ({ ...prev, totalCertificados }));
       } catch (error) {
@@ -125,14 +126,14 @@ export default function Admin() {
             <div className="stats-row">
               <div className="stat-box"><div className="stat-box-num">{stats.totalCursos}</div><div className="stat-box-label">Cursos</div></div>
               <div className="stat-box"><div className="stat-box-num">{usuarios.length}</div><div className="stat-box-label">Usuarios</div></div>
-              <div className="stat-box"><div className="stat-box-num">{stats.totalCertificados}</div><div className="stat-box-label">Certificados</div></div>
+              <div className="stat-box"><div className="stat-box-num">{stats.totalCertificados}</div><div className="stat-box-label">Certificados Totales</div></div>
               <div className="stat-box"><div className="stat-box-num">100%</div><div className="stat-box-label">Online</div></div>
             </div>
           )}
 
           <div className="table-wrap">
             <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--gray-500)' }}>LISTADO GENERAL</span>
+              <span style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--gray-500)' }}>LISTADO DE ALUMNOS</span>
               <input 
                 type="text" 
                 placeholder="Buscar por nombre o email..." 
@@ -147,6 +148,7 @@ export default function Admin() {
                   <th>Nombre</th>
                   <th>Email</th>
                   <th>Rol</th>
+                  <th style={{ textAlign: 'center' }}>Certificados</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -161,6 +163,11 @@ export default function Admin() {
                           {u.role}
                         </span>
                       </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="cert-count-pill">
+                          {u.completados || 0}
+                        </span>
+                      </td>
                       <td>
                         <button 
                           style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '500' }}
@@ -173,7 +180,7 @@ export default function Admin() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                       No se encontraron usuarios registrados.
                     </td>
                   </tr>
