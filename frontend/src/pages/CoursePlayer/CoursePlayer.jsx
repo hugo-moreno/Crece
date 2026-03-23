@@ -1,106 +1,75 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { cursoContenido } from "../../constants/content"; // Importamos tus datos de diapositivas
+import { useParams, useNavigate } from "react-router-dom";
+import { cursoContenido } from "../../constants/content";
 
 export default function CoursePlayer() {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [usuario, setUsuario] = useState(null);
-  const [moduloIndex, setModuloIndex] = useState(0); // Controla qué diapositiva se ve
+  const [moduloIndex, setModuloIndex] = useState(0);
+  const [subPass, setSubPass] = useState(0); // 0 para la primera diapositiva, 1 para la segunda
+  const [fullScreen, setFullScreen] = useState(false);
 
-  // Buscamos la data del curso real. Si no existe, usamos Word por default.
   const curso = cursoContenido[id] || cursoContenido["1"];
   const moduloActual = curso.modulos[moduloIndex];
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = JSON.parse(localStorage.getItem("usuario") || "{}");
-
-    if (!token) {
-      navigate("/login");
-      return;
+  // Función para avanzar considerando el par de diapositivas
+  const handleNext = () => {
+    if (subPass === 0) {
+      setSubPass(1);
+    } else if (moduloIndex < curso.modulos.length - 1) {
+      setModuloIndex(moduloIndex + 1);
+      setSubPass(0);
     }
-    setUsuario(storedUser);
-  }, [id, navigate]);
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
   };
 
-  const getInitials = (nombre) => {
-    if (!nombre || nombre === "Usuario") return "U";
-    const parts = nombre.trim().split(" ");
-    return parts.length >= 2
-      ? (parts[0][0] + parts[1][0]).toUpperCase()
-      : nombre.slice(0, 2).toUpperCase();
+  const handlePrev = () => {
+    if (subPass === 1) {
+      setSubPass(0);
+    } else if (moduloIndex > 0) {
+      setModuloIndex(moduloIndex - 1);
+      setSubPass(1);
+    }
   };
-
-  const nombreMostrar = usuario?.nombre || "Usuario";
-  const initials = getInitials(nombreMostrar);
 
   return (
-    <>
-      <style>{styles}</style>
+    <div className={`player-layout ${fullScreen ? 'is-fullscreen' : ''}`}>
+      <style>{`
+        .is-fullscreen .player-sidebar, 
+        .is-fullscreen .player-nav,
+        .is-fullscreen .nav-controls-visible { display: none !important; }
+        .is-fullscreen .player-main { width: 100vw; height: 100vh; }
+        .btn-fullscreen {
+          position: absolute; top: 20px; right: 20px;
+          background: rgba(0,0,0,0.5); color: white; border: none;
+          padding: 8px; border-radius: 4px; cursor: pointer; z-index: 10;
+        }
+      `}</style>
 
-      {/* Navbar */}
-      <nav className="player-nav">
-        <div className="nav-brand" onClick={() => navigate("/dashboard")} style={{cursor: 'pointer'}}>
-          <img src="/logo2.png" alt="Crece Online" />
-        </div>
-        <div className="nav-right">
-          <div className="nav-avatar">{initials}</div>
-          <span className="nav-name">{nombreMostrar}</span>
-          <button className="btn-logout" onClick={handleLogout}>Cerrar sesión</button>
-        </div>
-      </nav>
-
-      <div className="player-layout">
-        <div className="player-main">
-          {/* VISOR DE DIAPOSITIVAS (Reemplaza el video-empty) */}
-          <div className="video-area" style={{ padding: '20px' }}>
-            <div className="slide-wrapper" style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img 
-                src={moduloActual.img} 
-                alt={moduloActual.tema}
-                style={{ 
-                  maxWidth: '100%', 
-                  maxHeight: '100%', 
-                  borderRadius: '8px', 
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-                  objectFit: 'contain' 
-                }}
-              />
-              
-              {/* Controles flotantes sobre la imagen */}
-              <div style={{ position: 'absolute', bottom: '20px', display: 'flex', gap: '15px' }}>
-                <button 
-                  className="ctrl-nav-btn" 
-                  disabled={moduloIndex === 0}
-                  onClick={() => setModuloIndex(moduloIndex - 1)}
-                >
-                  ← Anterior
-                </button>
-                <div className="slide-counter">
-                  {moduloIndex + 1} / {curso.modulos.length}
-                </div>
-                <button 
-                  className="ctrl-nav-btn" 
-                  disabled={moduloIndex === curso.modulos.length - 1}
-                  onClick={() => setModuloIndex(moduloIndex + 1)}
-                >
-                  Siguiente →
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Visor Principal */}
+      <div className="player-main">
+        <div className="video-area" style={{ position: 'relative', height: fullScreen ? '100vh' : 'auto' }}>
           
-          <div className="module-info">
-            <div className="module-breadcrumb">Curso: {curso.titulo} • Instructor: {curso.instructor}</div>
-            <div className="module-title">{moduloActual.tema}</div>
-            <p className="module-desc">Visualiza las diapositivas del módulo para completar tu aprendizaje. Al terminar, no olvides realizar la evaluación final.</p>
-          </div>
+          <button className="btn-fullscreen" onClick={() => setFullScreen(!fullScreen)}>
+            {fullScreen ? "✕ Salir" : "⛶ Agrandar"}
+          </button>
+
+          <img 
+            src={moduloActual.imgs[subPass]} 
+            style={{ maxWidth: '100%', maxHeight: fullScreen ? '100vh' : '70vh' }}
+            alt="Contenido"
+          />
+
+          {/* Controles: Solo aparecen si NO está en FullScreen */}
+          {!fullScreen && (
+            <div className="nav-controls-visible" style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
+              <button onClick={handlePrev} disabled={moduloIndex === 0 && subPass === 0}>← Anterior</button>
+              <div className="slide-counter">Módulo {moduloIndex + 1} - Parte {subPass + 1}</div>
+              <button onClick={handleNext} disabled={moduloIndex === curso.modulos.length - 1 && subPass === 1}>Siguiente →</button>
+            </div>
+          )}
         </div>
+      </div>
+
 
         {/* Sidebar Dinámico */}
         <div className="player-sidebar">
@@ -143,7 +112,6 @@ export default function CoursePlayer() {
             </div>
         </div>
       </div>
-    </>
   );
 }
 
