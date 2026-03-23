@@ -385,6 +385,14 @@ export default function Landing() {
         <div className="footer-bottom">
           <div className="footer-copy">© 2026 Crece Online / UTSC Santa Catarina.</div>
         </div>
+        <div>
+  <div className="footer-col-title">Comunidad</div>
+  <ul className="footer-links">
+    {/* Agrega este link nuevo */}
+    <li><a onClick={() => navigate('/opinar')} style={{cursor:'pointer'}}>Dejar una reseña</a></li>
+    <li><a href="#">Historias de éxito</a></li>
+  </ul>
+</div>
       </footer>
     </>
   );
