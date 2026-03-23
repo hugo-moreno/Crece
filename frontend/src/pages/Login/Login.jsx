@@ -219,13 +219,11 @@ export default function Login() {
     setErrors({ ...errors, [e.target.name]: "" });
     setGlobalError("");
   };
-
 const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
 
-    // --- CORRECCIÓN DE URL PARA PRODUCCIÓN ---
     const API_BASE_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
 
     try {
@@ -234,17 +232,23 @@ const handleSubmit = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, password: form.password }),
       });
+      
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Credenciales incorrectas.");
-      // Guardamos el token y los datos que responde tu backend
-localStorage.setItem("token", data.token);
-localStorage.setItem("role", data.role); // Importante para saber si es Admin o Usernavigate("/dashboard");
+
+      // Guardamos los datos necesarios
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role); 
+      
+      // Saltamos al dashboard (Línea corregida)
+      navigate("/dashboard");
+
     } catch (err) {
       setGlobalError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+};
 
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
 
