@@ -169,41 +169,64 @@ export default function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { navigate("/login"); return; }
+    
     try {
+      // Decodificamos el token
       const payload = JSON.parse(atob(token.split(".")[1]));
-      setUsuario(payload);
-    } catch {
+      
+      // CORRECCIÓN: Tu backend envía 'nombre' en el token, no 'nombre_completo'
+      // También verificamos si guardamos algo en localStorage como respaldo
+      const localUser = JSON.parse(localStorage.getItem("usuario"));
+      
+      setUsuario({
+        nombre: payload.nombre || localUser?.nombre || "Usuario",
+        role: payload.role
+      });
+    } catch (error) {
+      console.error("Error decodificando token:", error);
       navigate("/login");
     }
-  }, []);
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("role");
     navigate("/login");
   };
 
+  // Función para las iniciales corregida
   const getInitials = (nombre) => {
-    if (!nombre) return "U";
+    if (!nombre || nombre === "Usuario") return "U";
     const parts = nombre.trim().split(" ");
     return parts.length >= 2
       ? (parts[0][0] + parts[1][0]).toUpperCase()
       : nombre.slice(0, 2).toUpperCase();
   };
 
-  const firstName = usuario?.nombre_completo?.split(" ")[0] || "Usuario";
-  const initials = getInitials(usuario?.nombre_completo || "");
+  const displayName = usuario?.nombre || "Usuario";
+  const firstName = displayName.split(" ")[0];
+  const initials = getInitials(displayName);
+
+  // Función para manejar el clic en los cursos
+  const handleCourseClick = (titulo) => {
+    // Aquí puedes redirigir a la página del curso específico
+    // Por ahora, lo mandamos a una ruta genérica de visualización
+    const slug = titulo.toLowerCase().replace(/ /g, "-");
+    navigate(`/cursos/${slug}`);
+  };
 
   return (
     <>
       <style>{styles}</style>
 
       <nav className="dash-nav">
-        <a className="nav-brand">
-          <img src="/logo.png" alt="Crece Online" />
+        <a className="nav-brand" onClick={() => navigate("/")} style={{cursor: 'pointer'}}>
+          <img src="/logo2.png" alt="Crece Online" />
         </a>
         <div className="nav-right">
           <div className="nav-avatar">{initials}</div>
-          <span className="nav-name">{usuario?.nombre_completo || "Usuario"}</span>
+          <span className="nav-name">{displayName}</span>
           <button className="btn-logout" onClick={handleLogout}>Cerrar sesión</button>
         </div>
       </nav>
@@ -247,7 +270,7 @@ export default function Dashboard() {
         <div className="section-label" style={{ marginTop: "3rem" }}>Cursos disponibles</div>
         <div className="cursos-grid">
           {cursosDisponibles.map((curso, i) => (
-            <div className="curso-card" key={i}>
+            <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.titulo)}>
               <div className="curso-nivel">{curso.nivel}</div>
               <div className="curso-titulo">{curso.titulo}</div>
               <div className="curso-instructor">{curso.instructor}</div>

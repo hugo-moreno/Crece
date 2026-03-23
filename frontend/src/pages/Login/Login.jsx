@@ -236,11 +236,17 @@ const handleSubmit = async () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Credenciales incorrectas.");
 
-      // Guardamos los datos necesarios
+      // --- CORRECCIÓN AQUÍ ---
+      // Guardamos el token
       localStorage.setItem("token", data.token);
+      
+      // Guardamos el objeto 'usuario' con el nombre que viene del servidor
+      // Tu servidor envía 'nombre_completo' o 'nombre', así aseguramos ambos:
+      const nombreUsuario = data.nombre || data.nombre_completo || "Usuario";
+      localStorage.setItem("usuario", JSON.stringify({ nombre: nombreUsuario }));
+      
       localStorage.setItem("role", data.role); 
       
-      // Saltamos al dashboard (Línea corregida)
       navigate("/dashboard");
 
     } catch (err) {
