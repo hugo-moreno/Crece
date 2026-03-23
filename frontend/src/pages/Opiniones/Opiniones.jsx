@@ -51,7 +51,7 @@ export default function Opiniones() {
         borderRadius: "12px", 
         width: "100%", 
         maxWidth: "500px",
-        boxShadow: "0 20px 60px rgba(255, 255, 255, 0.91)",
+        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.91)",
         position: "relative",
         animation: "fadeUp 0.5s ease both"
       }}>
@@ -111,7 +111,7 @@ export default function Opiniones() {
               `}</style>
               
               <div style={{position: "relative"}}>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#0d2a4a", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#e5e5e5", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Nombre Completo
                 </label>
                 <input 
@@ -125,7 +125,7 @@ export default function Opiniones() {
               </div>
               
               <div style={{position: "relative"}}>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#0d2a4a", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#efefef", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Tu Reseña (Sé breve y claro)
                 </label>
                 <textarea 
