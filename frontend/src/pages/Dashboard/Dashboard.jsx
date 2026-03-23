@@ -102,12 +102,6 @@ const styles = `
     transition: all 0.25s; cursor: pointer; position: relative;
     animation: fadeUp 0.4s ease both;
   }
-  .curso-card:nth-child(1) { animation-delay: 0.05s; }
-  .curso-card:nth-child(2) { animation-delay: 0.1s; }
-  .curso-card:nth-child(3) { animation-delay: 0.15s; }
-  .curso-card:nth-child(4) { animation-delay: 0.2s; }
-  .curso-card:nth-child(5) { animation-delay: 0.25s; }
-  .curso-card:nth-child(6) { animation-delay: 0.3s; }
   .curso-card:hover { background: var(--blue-mist); }
   .curso-card::after {
     content: ''; position: absolute; bottom: 0; left: 0;
@@ -132,6 +126,10 @@ const styles = `
     font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.7rem;
     background: var(--blue-mist); color: var(--blue-mid); border: 1px solid var(--blue-pale);
   }
+  .badge-completado {
+    font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.7rem;
+    background: #e6ffed; color: #28a745; border: 1px solid #b7eb8f;
+  }
   .curso-arrow {
     width: 28px; height: 28px; background: var(--blue-dark); color: var(--white);
     display: flex; align-items: center; justify-content: center;
@@ -147,11 +145,9 @@ const styles = `
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .dash-content { padding: 2rem 1.5rem; }
     .cursos-grid { grid-template-columns: 1fr; }
-    .nav-name { display: none; }
-    .dash-hero { width: 100%; }
-    .dash-nav { width: 100%; }
   }
 `;
+
 const cursosDisponibles = [
   { id: 1, nivel: "Principiante", titulo: "Word desde Cero", instructor: "Leonel Martínez" },
   { id: 2, nivel: "Avanzado", titulo: "Excel y Análisis de Datos", instructor: "Susana Morales" },
@@ -164,14 +160,15 @@ const cursosDisponibles = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState(null);
-  
-  // 1. ESTADOS PARA LAS ESTADÍSTICAS REALES
   const [stats, setStats] = useState({
     enProgreso: 0,
     completados: 0,
     disponibles: cursosDisponibles.length,
-    promedio: "—"
+    promedio: "—",
+    idsUsuario: [] // Guardaremos los IDs de los cursos que el usuario ya tiene
   });
+
+  const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -181,28 +178,25 @@ export default function Dashboard() {
       const payload = JSON.parse(atob(token.split(".")[1]));
       const localUser = JSON.parse(localStorage.getItem("usuario"));
       const userData = {
-        id: payload.id || localUser?.id, // Necesitamos el ID para la consulta
+        id: payload.id || localUser?.id,
         nombre: payload.nombre || localUser?.nombre || "Usuario",
         role: payload.role
       };
       setUsuario(userData);
 
-      // 2. LLAMADA AL BACKEND PARA CARGAR ESTADÍSTICAS
       const fetchStats = async () => {
         try {
-          const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
           const res = await fetch(`${API_URL}/api/stats/dashboard/${userData.id}`);
           if (res.ok) {
             const data = await res.json();
             setStats(data);
           }
         } catch (error) {
-          console.error("Error cargando estadísticas reales:", error);
+          console.error("Error cargando estadísticas:", error);
         }
       };
 
       if (userData.id) fetchStats();
-
     } catch (error) {
       console.error("Error decodificando token:", error);
       navigate("/login");
@@ -214,21 +208,30 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-  const getInitials = (nombre) => {
-    if (!nombre || nombre === "Usuario") return "U";
-    const parts = nombre.trim().split(" ");
-    return parts.length >= 2
-      ? (parts[0][0] + parts[1][0]).toUpperCase()
-      : nombre.slice(0, 2).toUpperCase();
+  const handleCourseClick = async (id) => {
+    // 1. Antes de navegar, intentamos inscribir al usuario para que suba el contador "En progreso"
+    try {
+      await fetch(`${API_URL}/api/stats/inscribir`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId: usuario.id, cursoId: id })
+      });
+    } catch (e) {
+      console.log("Ya estaba inscrito o error silencioso");
+    }
+    
+    navigate(`/curso/${id}`);
   };
+
+  // 2. FILTRADO: Cursos que el usuario NO ha terminado ni está cursando
+  const disponiblesFiltrados = cursosDisponibles.filter(c => !stats.idsUsuario?.includes(c.id));
+  
+  // 3. MIS CURSOS: Cursos que el usuario SÍ tiene activos o terminados
+  const misCursosReal = cursosDisponibles.filter(c => stats.idsUsuario?.includes(c.id));
 
   const displayName = usuario?.nombre || "Usuario";
   const firstName = displayName.split(" ")[0];
-  const initials = getInitials(displayName);
-
-  const handleCourseClick = (id) => {
-    navigate(`/curso/${id}`);
-  };
+  const initials = (displayName.split(" ")[0][0] + (displayName.split(" ")[1]?.[0] || "")).toUpperCase();
 
   return (
     <>
@@ -249,7 +252,6 @@ export default function Dashboard() {
         <div className="hero-tag">Bienvenido de vuelta</div>
         <div className="hero-greeting">Hola, <em>{firstName}.</em></div>
         
-        {/* 3. GRID DE ESTADÍSTICAS CONECTADO A STATS */}
         <div className="stats-grid">
           <div className="stat-box">
             <div className="stat-num">{stats.enProgreso}</div>
@@ -260,7 +262,7 @@ export default function Dashboard() {
             <div className="stat-label">Completados</div>
           </div>
           <div className="stat-box">
-            <div className="stat-num">{stats.disponibles}</div>
+            <div className="stat-num">{disponiblesFiltrados.length}</div>
             <div className="stat-label">Disponibles</div>
           </div>
           <div className="stat-box">
@@ -273,8 +275,7 @@ export default function Dashboard() {
       <div className="dash-content">
         <div className="section-label">Mis cursos</div>
         
-        {/* 4. LÓGICA PARA MOSTRAR ESTADO VACÍO O LISTA (Opcional) */}
-        {stats.enProgreso === 0 && stats.completados === 0 ? (
+        {misCursosReal.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a5fa8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -283,28 +284,42 @@ export default function Dashboard() {
               </svg>
             </div>
             <div className="empty-title">Aún no has iniciado ningún curso</div>
-            <p className="empty-subtitle">Explora el catálogo de cursos disponibles y comienza tu aprendizaje cuando estés listo.</p>
+            <p className="empty-subtitle">Explora el catálogo de cursos disponibles y comienza tu aprendizaje.</p>
           </div>
         ) : (
-          <div className="info-message" style={{fontSize: '0.8rem', color: 'var(--gray-500)'}}>
-            Tienes actividad reciente. ¡Sigue así!
+          <div className="cursos-grid">
+            {misCursosReal.map((curso, i) => (
+              <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.id)}>
+                <div className="curso-nivel">{curso.nivel}</div>
+                <div className="curso-titulo">{curso.titulo}</div>
+                <div className="curso-instructor">{curso.instructor}</div>
+                <div className="curso-footer">
+                  <div className="badge-completado">En tu lista</div>
+                  <div className="curso-arrow">→</div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        <div className="section-label" style={{ marginTop: "3rem" }}>Cursos disponibles</div>
-        <div className="cursos-grid">
-          {cursosDisponibles.map((curso, i) => (
-            <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.id)}>
-              <div className="curso-nivel">{curso.nivel}</div>
-              <div className="curso-titulo">{curso.titulo}</div>
-              <div className="curso-instructor">{curso.instructor}</div>
-              <div className="curso-footer">
-                <div className="badge-disponible">Disponible</div>
-                <div className="curso-arrow">→</div>
-              </div>
+        {disponiblesFiltrados.length > 0 && (
+          <>
+            <div className="section-label" style={{ marginTop: "3rem" }}>Cursos disponibles</div>
+            <div className="cursos-grid">
+              {disponiblesFiltrados.map((curso, i) => (
+                <div className="curso-card" key={i} onClick={() => handleCourseClick(curso.id)}>
+                  <div className="curso-nivel">{curso.nivel}</div>
+                  <div className="curso-titulo">{curso.titulo}</div>
+                  <div className="curso-instructor">{curso.instructor}</div>
+                  <div className="curso-footer">
+                    <div className="badge-disponible">Disponible</div>
+                    <div className="curso-arrow">→</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
     </>
   );

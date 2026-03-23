@@ -84,71 +84,104 @@ export default function Certificado() {
 
   // FUNCIÓN PARA GUARDAR PROGRESO EN BD
   const finalizarCurso = async () => {
-  try {
-    // 1. Extraemos el usuario y verificamos qué trae exactamente
-    const storageUser = JSON.parse(localStorage.getItem("usuario") || "{}");
-    
-    // Intentamos obtener el ID de varias formas por si acaso
-    const userId = storageUser.id || storageUser.usuarioId || storageUser.id_usuario;
+    try {
+      const storageUser = JSON.parse(localStorage.getItem("usuario") || "{}");
+      const userId = storageUser.id || storageUser.usuarioId || storageUser.id_usuario;
 
-    if (!userId) {
-      console.error("No se encontró el ID del usuario en localStorage", storageUser);
-      alert("Error de sesión: No se pudo identificar al usuario. Intenta cerrar sesión y volver a entrar.");
-      return;
+      if (!userId) {
+        console.error("No se encontró el ID del usuario en localStorage", storageUser);
+        alert("Error de sesión: No se pudo identificar al usuario. Intenta cerrar sesión y volver a entrar.");
+        return;
+      }
+
+      const API_URL = "https://respectful-manifestation-production-5441.up.railway.app"; 
+      
+      const response = await fetch(`${API_URL}/api/stats/finalizar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuarioId: userId,
+          cursoId: id,
+          calificacion: Math.round((correctas / total) * 100)
+        })
+      });
+
+      if (response.ok) {
+        alert("¡Felicidades! Tu progreso ha sido guardado exitosamente.");
+        navigate('/dashboard');
+      } else {
+        const errorData = await response.json();
+        console.error("Error del servidor:", errorData);
+        alert("Error al guardar el progreso en el servidor.");
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+      alert("No se pudo conectar con el servidor.");
     }
+  };
 
-    const API_URL = "https://respectful-manifestation-production-5441.up.railway.app"; 
-    
-    const response = await fetch(`${API_URL}/api/stats/finalizar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        usuarioId: userId, // Ahora enviamos el userId verificado
-        cursoId: id,
-        calificacion: Math.round((correctas / total) * 100)
-      })
-    });
-
-    if (response.ok) {
-      alert("¡Felicidades! Tu progreso ha sido guardado exitosamente.");
-      navigate('/dashboard');
-    } else {
-      const errorData = await response.json();
-      console.error("Error del servidor:", errorData);
-      alert("Error al guardar el progreso en el servidor.");
-    }
-  } catch (error) {
-    console.error("Error de conexión:", error);
-    alert("No se pudo conectar con el servidor.");
-  }
-};
-
+  // FUNCIÓN DESCARGAR PDF CORREGIDA CON CARGA DE IMÁGENES
   const descargarPDF = () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
     const W = doc.internal.pageSize.getWidth();
-    doc.setFillColor(255, 255, 255); doc.rect(0, 0, W, 216, 'F');
-    doc.setFillColor(13, 42, 74); doc.rect(0, 0, W, 6, 'F');
-    doc.setDrawColor(179, 216, 245); doc.setLineWidth(0.5); doc.rect(10, 10, W - 20, 196);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.setTextColor(13, 42, 74); doc.text('Crece', 20, 30);
-    doc.setTextColor(59, 158, 232); doc.text('Online', 41, 30);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(138, 144, 153); doc.text('PLATAFORMA DE APRENDIZAJE EN LÍNEA', 20, 36);
-    doc.setFontSize(7); doc.text(`ID: ${certId}`, W - 20, 30, { align: 'right' });
-    doc.setDrawColor(212, 216, 222); doc.setLineWidth(0.3); doc.line(20, 42, W - 20, 42);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(59, 158, 232); doc.text('CERTIFICADO DE FINALIZACIÓN', W / 2, 58, { align: 'center' });
-    doc.setFont('times', 'normal'); doc.setFontSize(36); doc.setTextColor(13, 42, 74); doc.text(nombre, W / 2, 78, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(138, 144, 153); doc.text('Ha completado satisfactoriamente el curso', W / 2, 90, { align: 'center' });
-    doc.setFont('times', 'bold'); doc.setFontSize(22); doc.setTextColor(13, 42, 74); doc.text(curso, W / 2, 104, { align: 'center' });
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(26, 95, 168); doc.text(`Calificación: ${correctas} / ${total} · ${Math.round((correctas / total) * 100)}%`, W / 2, 114, { align: 'center' });
-    doc.setDrawColor(212, 216, 222); doc.setLineWidth(0.3); doc.line(20, 125, W - 20, 125);
-    doc.line(30, 142, 100, 142);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(13, 42, 74); doc.text(instructor, 65, 148, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(138, 144, 153); doc.text('Instructor del curso', 65, 153, { align: 'center' });
-    doc.line(W - 100, 142, W - 30, 142);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(13, 42, 74); doc.text('Crece Online', W - 65, 148, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(138, 144, 153); doc.text('UTSC — Desarrollo Web Integral', W - 65, 153, { align: 'center' });
-    doc.setFontSize(8); doc.setTextColor(138, 144, 153); doc.text('Fecha de emisión', W / 2, 143, { align: 'center' });
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 42, 74); doc.text(fecha, W / 2, 149, { align: 'center' });
-    doc.save(`Certificado_${curso.replace(/ /g, '_')}_${nombre.split(' ')[0]}.pdf`);
+
+    const cargarImagen = (url) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = url;
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(err);
+      });
+    };
+
+    Promise.all([
+      cargarImagen('/logo2.png'),
+      cargarImagen('/utsc-logo.png')
+    ]).then(([logoCrece, logoUtsc]) => {
+      // Fondo y bordes
+      doc.setFillColor(255, 255, 255); doc.rect(0, 0, W, 216, 'F');
+      doc.setFillColor(13, 42, 74); doc.rect(0, 0, W, 6, 'F');
+      doc.setDrawColor(179, 216, 245); doc.setLineWidth(0.5); doc.rect(10, 10, W - 20, 196);
+      
+      // Dibujar Logos
+      doc.addImage(logoCrece, 'PNG', 20, 15, 35, 15);
+      doc.addImage(logoUtsc, 'PNG', W - 55, 15, 35, 15);
+
+      // Info secundaria y ID
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(138, 144, 153); doc.text('PLATAFORMA DE APRENDIZAJE EN LÍNEA', 20, 36);
+      doc.setFontSize(7); doc.text(`ID: ${certId}`, W - 20, 36, { align: 'right' });
+      
+      // Línea separadora superior
+      doc.setDrawColor(212, 216, 222); doc.setLineWidth(0.3); doc.line(20, 42, W - 20, 42);
+      
+      // Cuerpo del certificado
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(59, 158, 232); doc.text('CERTIFICADO DE FINALIZACIÓN', W / 2, 58, { align: 'center' });
+      doc.setFont('times', 'normal'); doc.setFontSize(36); doc.setTextColor(13, 42, 74); doc.text(nombre, W / 2, 78, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(138, 144, 153); doc.text('Ha completado satisfactoriamente el curso', W / 2, 90, { align: 'center' });
+      doc.setFont('times', 'bold'); doc.setFontSize(22); doc.setTextColor(13, 42, 74); doc.text(curso, W / 2, 104, { align: 'center' });
+      
+      // Calificación
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(26, 95, 168); 
+      doc.text(`Calificación: ${correctas} / ${total} · ${Math.round((correctas / total) * 100)}%`, W / 2, 114, { align: 'center' });
+      
+      // Firmas y Footer
+      doc.setDrawColor(212, 216, 222); doc.setLineWidth(0.3); doc.line(20, 125, W - 20, 125);
+      doc.line(30, 142, 100, 142);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(13, 42, 74); doc.text(instructor, 65, 148, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(138, 144, 153); doc.text('Instructor del curso', 65, 153, { align: 'center' });
+      
+      doc.line(W - 100, 142, W - 30, 142);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(13, 42, 74); doc.text('Crece Online', W - 65, 148, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(138, 144, 153); doc.text('UTSC — Desarrollo Web Integral', W - 65, 153, { align: 'center' });
+      
+      doc.setFontSize(8); doc.setTextColor(138, 144, 153); doc.text('Fecha de emisión', W / 2, 143, { align: 'center' });
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 42, 74); doc.text(fecha, W / 2, 149, { align: 'center' });
+      
+      doc.save(`Certificado_${curso.replace(/ /g, '_')}_${nombre.split(' ')[0]}.pdf`);
+    }).catch(err => {
+      console.error("Error cargando los logos para el PDF:", err);
+      alert("No se pudieron cargar los logos para generar el PDF. Verifica que existan en la carpeta public.");
+    });
   };
 
   const handleLogout = () => { localStorage.clear(); navigate('/'); };
@@ -168,12 +201,9 @@ export default function Certificado() {
       <div className="cert-page">
         <div className="cert-actions">
           <button className="cert-btn" onClick={descargarPDF}>Descargar PDF →</button>
-          
-          {/* BOTÓN DE FINALIZAR Y GUARDAR */}
           <button className="cert-btn-success" onClick={finalizarCurso}>
             Finalizar y Guardar Curso ✓
           </button>
-          
           <button className="cert-btn-out" onClick={() => navigate('/dashboard')}>Volver al dashboard</button>
         </div>
 
