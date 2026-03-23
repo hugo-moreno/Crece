@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ── INSTRUCCIÓN ──────────────────────────────────────────────────────────────
-// Pon la imagen que quieras en: frontend/public/login-bg.jpg
-// Puede ser cualquier foto: estudiantes, escritorio, ciudad, lo que prefieras.
-// Resolución recomendada: 1200x900px o más. Se ajusta automáticamente.
-// ─────────────────────────────────────────────────────────────────────────────
-
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,7 +18,6 @@ const styles = `
     grid-template-columns: 480px 1fr;
   }
 
-  /* ── Izquierda: formulario ── */
   .login-left {
     display: flex;
     flex-direction: column;
@@ -146,7 +139,6 @@ const styles = `
   }
   .back-link:hover { color: var(--blue-dark); }
 
-  /* ── Derecha: imagen ── */
   .login-right {
     position: relative; overflow: hidden;
     background: var(--blue-dark);
@@ -220,7 +212,7 @@ export default function Login() {
     setGlobalError("");
   };
 
-const handleSubmit = async () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
@@ -238,26 +230,30 @@ const handleSubmit = async () => {
       
       if (!res.ok) throw new Error(data.message || "Credenciales incorrectas.");
 
-      // --- EL BLINDAJE DE SEGURIDAD CORREGIDO ---
+      // --- GUARDADO DE SEGURIDAD ---
       localStorage.setItem("token", data.token);
       
       const userRole = data.role || data.rol || 'User';
       localStorage.setItem("role", userRole);
 
-      // 1. IMPORTANTE: Guardamos el ID que viene del backend
-      // Verifica si tu backend lo manda como 'id' o 'usuarioId'
+      // Guardamos el ID real para evitar errores de undefined en certificados/dashboard
       const userId = data.id || data.usuarioId || (data.user ? data.user.id : null);
 
-      // 2. Guardamos el objeto usuario COMPLETO con su ID
       localStorage.setItem("usuario", JSON.stringify({
-        id: userId, // <--- ESTA LÍNEA ES LA QUE REPARA EL ERROR 500
+        id: userId,
         nombre: data.nombre || data.nombre_completo || "Usuario",
         rol: userRole,
         role: userRole
       }));
 
-      console.log("Sesión iniciada para ID:", userId);
-      navigate("/dashboard");
+      // --- REDIRECCIÓN INTELIGENTE ---
+      if (userRole === 'Admin') {
+        console.log("Acceso de Administrador detectado");
+        navigate("/admin");
+      } else {
+        console.log("Acceso de Usuario estándar detectado");
+        navigate("/dashboard");
+      }
 
     } catch (err) {
       console.error("Error en login:", err.message);
@@ -265,7 +261,7 @@ const handleSubmit = async () => {
     } finally {
       setLoading(false);
     }
-};
+  };
 
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
 
@@ -273,8 +269,6 @@ const handleSubmit = async () => {
     <>
       <style>{styles}</style>
       <div className="login-wrapper">
-
-        {/* ── Formulario ── */}
         <div className="login-left">
           <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
             <img src="/logo2.png" alt="Crece Online" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
@@ -342,7 +336,6 @@ const handleSubmit = async () => {
           </div>
         </div>
 
-        {/* ── Imagen ── */}
         <div className="login-right">
           <div className="login-right-img"></div>
           <div className="login-right-overlay"></div>
@@ -366,7 +359,6 @@ const handleSubmit = async () => {
             </div>
           </div>
         </div>
-
       </div>
     </>
   );
