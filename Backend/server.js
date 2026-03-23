@@ -20,8 +20,9 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // --- Middlewares Globales ---
+// Configuración de CORS abierta para permitir peticiones desde el frontend en Railway
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://creceonline-frontend:5173'],
+    origin: true, // Esto permite cualquier origen dinámicamente, ideal para resolver el error de CORS rápido
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
@@ -33,28 +34,29 @@ app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 
 app.get('/', (req, res) => {
-    res.send('🚀 El servidor de Hugo David Moreno Llamas está escuchando en el puerto 3001');
+    res.send('🚀 El servidor de Hugo David Moreno Llamas está escuchando correctamente en Railway');
 });
 
 // --- Encender Servidor ---
+// Railway asigna el puerto automáticamente mediante process.env.PORT
 const PORT = process.env.PORT || 3001;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(` Servidor encendido en: http://localhost:${PORT}`);
-    console.log(` Esperando peticiones desde el puerto 5173...`);
+    console.log(` Servidor encendido en el puerto: ${PORT}`);
 
     sequelize.authenticate()
         .then(() => {
-            console.log(' Conexión exitosa a la base de datos en SQLyog');
+            console.log(' Conexión exitosa a la base de datos en Railway (MySQL)');
+            // Sincronizar modelos con la DB
             return sequelize.sync({ alter: true });
         })
         .then(() => {
-            console.log(' Tablas sincronizadas correctamente');
-            console.log(' Todo listo, el servidor está operativo');
+            console.log(' Tablas sincronizadas correctamente en el servidor');
+            console.log(' Todo listo, el servidor de Crece Online está operativo');
         })
         .catch(err => {
             console.error(' Error en la base de datos:', err);
-            console.log('  El servidor sigue corriendo, pero sin conexión a la DB');
+            console.log(' El servidor sigue corriendo, pero revisa las variables de conexión');
         });
 });
 
@@ -68,7 +70,7 @@ server.on('error', (err) => {
     process.exit(1);
 });
 
-// --- Mantener vivo el proceso (diagnóstico) ---
+// --- Mantener vivo el proceso (diagnóstico para logs de Railway) ---
 setInterval(() => {
-    console.log(' Servidor fokin vivo!!...');
-}, 3000);
+    console.log(' Servidor operativo y escuchando peticiones...');
+}, 60000); // Reducido a cada minuto para no saturar los logs
