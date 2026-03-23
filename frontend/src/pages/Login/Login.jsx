@@ -224,6 +224,7 @@ const handleSubmit = async () => {
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
 
+    // 1. Usamos tu URL de Railway (La de tus compas decía localhost)
     const API_BASE_URL = import.meta.env.VITE_API_URL || "https://respectful-manifestation-production-5441.up.railway.app";
 
     try {
@@ -236,17 +237,26 @@ const handleSubmit = async () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Credenciales incorrectas.");
 
-      // --- CORRECCIÓN AQUÍ ---
-      // Guardamos el token
+      // 2. Guardamos el Token (Vital para el PrivateRoute)
       localStorage.setItem("token", data.token);
       
-      // Guardamos el objeto 'usuario' con el nombre que viene del servidor
-      // Tu servidor envía 'nombre_completo' o 'nombre', así aseguramos ambos:
-      const nombreUsuario = data.nombre || data.nombre_completo || "Usuario";
-      localStorage.setItem("usuario", JSON.stringify({ nombre: nombreUsuario }));
+      // 3. Guardamos el objeto Usuario con los campos que espera el código de tus compas (rol)
+      // y los que espera el tuyo (role). Ponemos ambos para no fallar.
+      const usuarioData = data.usuario || data.user || {};
+      const nombreFinal = data.nombre || usuarioData.nombre_completo || usuarioData.nombre || form.email;
+      const rolFinal = data.role || usuarioData.role || usuarioData.rol || 'User';
+
+      localStorage.setItem("usuario", JSON.stringify({
+        nombre: nombreFinal,
+        rol: rolFinal, // Para el código de ellos
+        role: rolFinal, // Para tu base de datos
+        id: usuarioData.id || data.id || null
+      }));
+
+      // 4. Guardamos el role suelto para que el AdminRoute lo encuentre rápido
+      localStorage.setItem("role", rolFinal); 
       
-      localStorage.setItem("role", data.role); 
-      
+      // 5. ¡A darle al Dashboard!
       navigate("/dashboard");
 
     } catch (err) {
