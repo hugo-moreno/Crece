@@ -164,6 +164,14 @@ const cursosDisponibles = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState(null);
+  
+  // 1. ESTADOS PARA LAS ESTADÍSTICAS REALES
+  const [stats, setStats] = useState({
+    enProgreso: 0,
+    completados: 0,
+    disponibles: cursosDisponibles.length,
+    promedio: "—"
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -172,11 +180,29 @@ export default function Dashboard() {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       const localUser = JSON.parse(localStorage.getItem("usuario"));
-      
-      setUsuario({
+      const userData = {
+        id: payload.id || localUser?.id, // Necesitamos el ID para la consulta
         nombre: payload.nombre || localUser?.nombre || "Usuario",
         role: payload.role
-      });
+      };
+      setUsuario(userData);
+
+      // 2. LLAMADA AL BACKEND PARA CARGAR ESTADÍSTICAS
+      const fetchStats = async () => {
+        try {
+          const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
+          const res = await fetch(`${API_URL}/api/stats/dashboard/${userData.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            setStats(data);
+          }
+        } catch (error) {
+          console.error("Error cargando estadísticas reales:", error);
+        }
+      };
+
+      if (userData.id) fetchStats();
+
     } catch (error) {
       console.error("Error decodificando token:", error);
       navigate("/login");
@@ -200,7 +226,6 @@ export default function Dashboard() {
   const firstName = displayName.split(" ")[0];
   const initials = getInitials(displayName);
 
-  // FUNCIÓN CORREGIDA: Solo una versión que usa el ID
   const handleCourseClick = (id) => {
     navigate(`/curso/${id}`);
   };
@@ -223,21 +248,23 @@ export default function Dashboard() {
       <div className="dash-hero">
         <div className="hero-tag">Bienvenido de vuelta</div>
         <div className="hero-greeting">Hola, <em>{firstName}.</em></div>
+        
+        {/* 3. GRID DE ESTADÍSTICAS CONECTADO A STATS */}
         <div className="stats-grid">
           <div className="stat-box">
-            <div className="stat-num">0</div>
+            <div className="stat-num">{stats.enProgreso}</div>
             <div className="stat-label">Cursos en progreso</div>
           </div>
           <div className="stat-box">
-            <div className="stat-num">0</div>
+            <div className="stat-num">{stats.completados}</div>
             <div className="stat-label">Completados</div>
           </div>
           <div className="stat-box">
-            <div className="stat-num">{cursosDisponibles.length}</div>
+            <div className="stat-num">{stats.disponibles}</div>
             <div className="stat-label">Disponibles</div>
           </div>
           <div className="stat-box">
-            <div className="stat-num">—</div>
+            <div className="stat-num">{stats.promedio}</div>
             <div className="stat-label">Promedio Quiz</div>
           </div>
         </div>
@@ -245,16 +272,24 @@ export default function Dashboard() {
 
       <div className="dash-content">
         <div className="section-label">Mis cursos</div>
-        <div className="empty-state">
-          <div className="empty-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a5fa8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-            </svg>
+        
+        {/* 4. LÓGICA PARA MOSTRAR ESTADO VACÍO O LISTA (Opcional) */}
+        {stats.enProgreso === 0 && stats.completados === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a5fa8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </div>
+            <div className="empty-title">Aún no has iniciado ningún curso</div>
+            <p className="empty-subtitle">Explora el catálogo de cursos disponibles y comienza tu aprendizaje cuando estés listo.</p>
           </div>
-          <div className="empty-title">Aún no has iniciado ningún curso</div>
-          <p className="empty-subtitle">Explora el catálogo de cursos disponibles y comienza tu aprendizaje cuando estés listo.</p>
-        </div>
+        ) : (
+          <div className="info-message" style={{fontSize: '0.8rem', color: 'var(--gray-500)'}}>
+            Tienes actividad reciente. ¡Sigue así!
+          </div>
+        )}
 
         <div className="section-label" style={{ marginTop: "3rem" }}>Cursos disponibles</div>
         <div className="cursos-grid">
