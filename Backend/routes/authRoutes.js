@@ -9,6 +9,12 @@ router.post('/register', authController.register);
 
 // --- RUTAS PROTEGIDAS (Requieren Token) ---
 
+/**
+ * 1. LISTAR TODOS LOS USUARIOS (NUEVA RUTA PARA EL ADMIN)
+ * GET /api/auth/users
+ */
+router.get('/users', authController.getAllUsers);
+
 // Validar token (Vital para que el Frontend mantenga la sesión iniciada)
 router.get('/validate', verifyToken, (req, res) => {
     res.json({ 
@@ -35,11 +41,11 @@ router.get('/reportes', verifyToken, checkRole(['Admin', 'Staff']), (req, res) =
     });
 });
 
-// Panel de Control Maestro (Solo Admin - Hugo)
+// Panel de Control Maestro (Solo Admin - Hugo/Virginia)
 router.get('/admin-total', verifyToken, checkRole(['Admin']), (req, res) => {
     res.json({ 
         success: true,
-        message: "Acceso total al sistema de Lubral concedido." 
+        message: "Acceso total al sistema concedido." 
     });
 });
 

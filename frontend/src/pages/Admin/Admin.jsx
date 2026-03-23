@@ -15,7 +15,7 @@ const styles = `
   .anav-brand { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 700; color: var(--blue-dark); letter-spacing: -0.02em; cursor: pointer; }
   .anav-right { display: flex; align-items: center; gap: 1.5rem; }
   .anav-avatar { width: 32px; height: 32px; background: var(--blue-mist); border: 1.5px solid var(--blue-pale); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: var(--blue-mid); }
-  .anav-name { font-size: 0.85rem; color: var(--gray-500); }
+  .anav-name { font-size: 0.85rem; color: var(--gray-500); text-transform: capitalize; }
   .anav-logout { background: none; border: 1px solid var(--gray-300); padding: 0.4rem 1rem; font-size: 0.8rem; color: var(--gray-500); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
   .anav-logout:hover { border-color: var(--blue-mid); color: var(--blue-mid); }
 
@@ -39,7 +39,7 @@ const styles = `
   th { background: var(--gray-100); padding: 0.7rem 1.5rem; text-align: left; font-size: 0.72rem; color: var(--gray-500); border-bottom: 1px solid var(--gray-300); }
   td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--gray-300); font-size: 0.85rem; }
 
-  .role-badge { display: inline-block; padding: 0.2rem 0.7rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; }
+  .role-badge { display: inline-block; padding: 0.2rem 0.7rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; border-radius: 4px; }
   .badge-admin { background: var(--blue-dark); color: white; }
   .badge-user { background: var(--gray-100); color: var(--gray-500); border: 1px solid var(--gray-300); }
 `;
@@ -47,7 +47,9 @@ const styles = `
 function getInitials(name) {
   if (!name) return 'A';
   const parts = name.trim().split(' ');
-  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+  return parts.length > 1 
+    ? (parts[0][0] + parts[1][0]).toUpperCase() 
+    : parts[0][0].toUpperCase();
 }
 
 export default function Admin() {
@@ -70,10 +72,11 @@ export default function Admin() {
     const fetchUsuarios = async () => {
       try {
         const response = await fetch(`${API_URL}/api/auth/users`);
+        if (!response.ok) throw new Error("Error en la red");
         const data = await response.json();
         setUsuarios(data);
         
-        // Calculamos certificados totales (esto es un ejemplo, podrías sumarlos de la DB)
+        // Calculamos certificados totales si tuvieras ese campo en la DB
         const totalCertificados = data.reduce((acc, u) => acc + (u.completados || 0), 0);
         setStats(prev => ({ ...prev, totalCertificados }));
       } catch (error) {
@@ -128,29 +131,53 @@ export default function Admin() {
           )}
 
           <div className="table-wrap">
-            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: '600' }}>LISTADO GENERAL</span>
+            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--gray-500)' }}>LISTADO GENERAL</span>
               <input 
                 type="text" 
-                placeholder="Buscar usuario..." 
-                style={{ padding: '0.4rem', border: '1px solid #ddd' }}
+                placeholder="Buscar por nombre o email..." 
+                style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '4px', width: '250px', outline: 'none' }}
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
               />
             </div>
             <table>
               <thead>
-                <tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th></tr>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Acciones</th>
+                </tr>
               </thead>
               <tbody>
-                {usuariosFiltrados.map(u => (
-                  <tr key={u.id}>
-                    <td>{u.nombre_completo}</td>
-                    <td>{u.email}</td>
-                    <td><span className={`role-badge badge-${u.role?.toLowerCase()}`}>{u.role}</span></td>
-                    <td><button style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>Eliminar</button></td>
+                {usuariosFiltrados.length > 0 ? (
+                  usuariosFiltrados.map(u => (
+                    <tr key={u.id}>
+                      <td style={{ fontWeight: '500' }}>{u.nombre_completo}</td>
+                      <td style={{ color: 'var(--gray-500)' }}>{u.email}</td>
+                      <td>
+                        <span className={`role-badge badge-${u.role?.toLowerCase()}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td>
+                        <button 
+                          style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '500' }}
+                          onClick={() => alert('Función de eliminar en desarrollo')}
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
+                      No se encontraron usuarios registrados.
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

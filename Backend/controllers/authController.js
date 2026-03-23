@@ -94,9 +94,21 @@ exports.login = async (req, res) => {
             role: user.role,
             nombre: user.nombre_completo 
         });
-        
+
     } catch (error) {
         console.error("Error en login:", error);
         return res.status(500).json({ success: false, message: "Error interno en el servidor" });
+    }
+};
+
+// Obtener todos los usuarios para el panel de Admin
+exports.getAllUsers = async (req, res) => {
+    try {
+        const users = await User.findAll({
+            attributes: ['id', 'nombre_completo', 'email', 'role'] // Solo enviamos lo necesario
+        });
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Error al obtener usuarios" });
     }
 };
