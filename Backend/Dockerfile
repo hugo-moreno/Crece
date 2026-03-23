@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 WORKDIR /app
 # Fíjate en la ruta: le decimos que busque dentro de Backend
 COPY Backend/package*.json ./
