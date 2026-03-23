@@ -1,14 +1,16 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+// Usamos los nombres exactos que Railway genera por defecto
 const sequelize = new Sequelize(
-    process.env.DB_NAME || 'sistema_roles',
-    process.env.DB_USER || 'root',
-    process.env.DB_PASSWORD || '',
+    process.env.MYSQLDATABASE, // Cambiado de DB_NAME
+    process.env.MYSQLUSER,     // Cambiado de DB_USER
+    process.env.MYSQLPASSWORD, // Cambiado de DB_PASSWORD
     {
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.MYSQLHOST, // Cambiado de DB_HOST
+        port: process.env.MYSQLPORT || 3306, // Agregamos el puerto
         dialect: 'mysql',
-        logging: false // Para que no llene la consola de textos raros
+        logging: false 
     }
 );
 
