@@ -1,20 +1,28 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { cursoContenido } from "../../constants/content";
 
 export default function CoursePlayer() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [moduloIndex, setModuloIndex] = useState(0);
-  const [subPass, setSubPass] = useState(0); // 0 para la primera diapositiva, 1 para la segunda
+  const [usuario, setUsuario] = useState(null);
+  const [moduloIndex, setModuloIndex] = useState(0); 
+  const [subPass, setSubPass] = useState(0); // 0 para Diapositiva A, 1 para Diapositiva B
   const [fullScreen, setFullScreen] = useState(false);
 
   const curso = cursoContenido[id] || cursoContenido["1"];
   const moduloActual = curso.modulos[moduloIndex];
 
-  // Función para avanzar considerando el par de diapositivas
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = JSON.parse(localStorage.getItem("usuario") || "{}");
+    if (!token) { navigate("/login"); return; }
+    setUsuario(storedUser);
+  }, [id, navigate]);
+
+  // Lógica de navegación corregida para 2 imágenes por módulo
   const handleNext = () => {
-    if (subPass === 0) {
+    if (subPass === 0 && moduloActual.imgs.length > 1) {
       setSubPass(1);
     } else if (moduloIndex < curso.modulos.length - 1) {
       setModuloIndex(moduloIndex + 1);
@@ -27,94 +35,114 @@ export default function CoursePlayer() {
       setSubPass(0);
     } else if (moduloIndex > 0) {
       setModuloIndex(moduloIndex - 1);
-      setSubPass(1);
+      setSubPass(curso.modulos[moduloIndex - 1].imgs.length > 1 ? 1 : 0);
     }
   };
 
+  const handleLogout = () => { localStorage.clear(); navigate("/login"); };
+  const initials = usuario?.nombre ? (usuario.nombre.split(" ").map(n => n[0]).join("").toUpperCase()) : "U";
+
   return (
-    <div className={`player-layout ${fullScreen ? 'is-fullscreen' : ''}`}>
-      <style>{`
-        .is-fullscreen .player-sidebar, 
-        .is-fullscreen .player-nav,
-        .is-fullscreen .nav-controls-visible { display: none !important; }
-        .is-fullscreen .player-main { width: 100vw; height: 100vh; }
-        .btn-fullscreen {
-          position: absolute; top: 20px; right: 20px;
-          background: rgba(0,0,0,0.5); color: white; border: none;
-          padding: 8px; border-radius: 4px; cursor: pointer; z-index: 10;
-        }
-      `}</style>
+    <>
+      <style>{styles}</style>
+      
+      {/* Navbar (se oculta en agrandar si quieres, o se queda) */}
+      {!fullScreen && (
+        <nav className="player-nav">
+          <div className="nav-brand" onClick={() => navigate("/dashboard")} style={{cursor: 'pointer'}}>
+            <img src="/logo2.png" alt="Crece Online" />
+          </div>
+          <div className="nav-right">
+            <div className="nav-avatar">{initials}</div>
+            <span className="nav-name">{usuario?.nombre || "Usuario"}</span>
+            <button className="btn-logout" onClick={handleLogout}>Cerrar sesión</button>
+          </div>
+        </nav>
+      )}
 
-      {/* Visor Principal */}
-      <div className="player-main">
-        <div className="video-area" style={{ position: 'relative', height: fullScreen ? '100vh' : 'auto' }}>
-          
-          <button className="btn-fullscreen" onClick={() => setFullScreen(!fullScreen)}>
-            {fullScreen ? "✕ Salir" : "⛶ Agrandar"}
-          </button>
+      <div className={`player-layout ${fullScreen ? 'fullscreen-active' : ''}`}>
+        <div className="player-main">
+          <div className="video-area" style={fullScreen ? {height: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0, zIndex: 1000} : {}}>
+            
+            {/* Botón Agrandar */}
+            <button 
+              onClick={() => setFullScreen(!fullScreen)}
+              style={{
+                position: 'absolute', top: '20px', right: '20px', zIndex: 1001,
+                background: 'rgba(255,255,255,0.1)', border: '1px solid white', 
+                color: 'white', padding: '8px 15px', cursor: 'pointer', borderRadius: '4px'
+              }}
+            >
+              {fullScreen ? "✕ Salir" : "⛶ Agrandar"}
+            </button>
 
-          <img 
-            src={moduloActual.imgs[subPass]} 
-            style={{ maxWidth: '100%', maxHeight: fullScreen ? '100vh' : '70vh' }}
-            alt="Contenido"
-          />
+            <img 
+              src={moduloActual.imgs[subPass]} 
+              alt={moduloActual.tema}
+              style={{ 
+                maxWidth: '95%', maxHeight: '90%', 
+                borderRadius: '8px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' 
+              }}
+            />
+            
+            {/* Controles de navegación */}
+            <div style={{ marginTop: '20px', display: 'flex', gap: '15px', zIndex: 1001 }}>
+              <button className="ctrl-nav-btn" onClick={handlePrev} disabled={moduloIndex === 0 && subPass === 0}>
+                ← Anterior
+              </button>
+              <div className="slide-counter" style={{color: 'white', background: 'rgba(0,0,0,0.5)', padding: '5px 15px', borderRadius: '4px'}}>
+                {moduloActual.tema} - Parte {subPass + 1}
+              </div>
+              <button className="ctrl-nav-btn" onClick={handleNext} disabled={moduloIndex === curso.modulos.length - 1 && subPass === moduloActual.imgs.length - 1}>
+                Siguiente →
+              </button>
+            </div>
+          </div>
 
-          {/* Controles: Solo aparecen si NO está en FullScreen */}
           {!fullScreen && (
-            <div className="nav-controls-visible" style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
-              <button onClick={handlePrev} disabled={moduloIndex === 0 && subPass === 0}>← Anterior</button>
-              <div className="slide-counter">Módulo {moduloIndex + 1} - Parte {subPass + 1}</div>
-              <button onClick={handleNext} disabled={moduloIndex === curso.modulos.length - 1 && subPass === 1}>Siguiente →</button>
+            <div className="module-info">
+              <div className="module-breadcrumb">Curso: {curso.titulo}</div>
+              <div className="module-title">{moduloActual.tema}</div>
+              <p className="module-desc">Instructor: {curso.instructor}[cite: 5, 217]. Revisa las diapositivas de este módulo para continuar con tu formación.</p>
             </div>
           )}
         </div>
-      </div>
 
-
-        {/* Sidebar Dinámico */}
-        <div className="player-sidebar">
+        {/* Sidebar (se oculta al agrandar) */}
+        {!fullScreen && (
+          <div className="player-sidebar">
             <div className="sidebar-header">
-                <div className="sidebar-title">Contenido del curso</div>
-                <div className="sidebar-progress-bar">
-                  <div 
-                    className="sidebar-progress-fill" 
-                    style={{ width: `${((moduloIndex + 1) / curso.modulos.length) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="sidebar-progress-text">
-                  Progreso: {Math.round(((moduloIndex + 1) / curso.modulos.length) * 100)}%
-                </div>
-                <button 
-                  className="btn-evaluacion activa" 
-                  onClick={() => navigate(`/quiz/${id}`)}
-                  style={{marginTop: '15px', width: '100%'}}
-                >
-                  Realizar Evaluación →
-                </button>
+              <div className="sidebar-title">Contenido del curso</div>
+              <div className="sidebar-progress-bar">
+                <div className="sidebar-progress-fill" style={{ width: `${((moduloIndex + 1) / curso.modulos.length) * 100}%` }}></div>
+              </div>
+              <button className="btn-evaluacion activa" onClick={() => navigate(`/quiz/${id}`)}>
+                Ir al Quiz →
+              </button>
             </div>
-
             <div className="modulos-list">
               {curso.modulos.map((m, index) => (
                 <div 
                   key={index} 
                   className={`modulo-item disponible ${moduloIndex === index ? 'activo' : ''}`}
-                  onClick={() => setModuloIndex(index)}
+                  onClick={() => { setModuloIndex(index); setSubPass(0); }}
                 >
                   <div className={`modulo-icon ${moduloIndex === index ? 'activo-icon' : 'proximo'}`}>
                     {m.num}
                   </div>
                   <div className="modulo-info-text">
                     <div className="modulo-nombre">{m.tema}</div>
-                    <div className="modulo-duracion">Diapositiva técnica</div>
+                    <div className="modulo-duracion">Contenido técnico [cite: 10, 221]</div>
                   </div>
                 </div>
               ))}
             </div>
-        </div>
+          </div>
+        )}
       </div>
+    </>
   );
 }
-
 const styles = `
   /* ... Tus estilos anteriores se mantienen igual ... */
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
