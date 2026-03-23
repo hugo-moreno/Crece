@@ -51,7 +51,7 @@ export default function Opiniones() {
         borderRadius: "12px", 
         width: "100%", 
         maxWidth: "500px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        boxShadow: "0 20px 60px rgba(255, 255, 255, 0.91)",
         position: "relative",
         animation: "fadeUp 0.5s ease both"
       }}>
