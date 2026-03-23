@@ -17,8 +17,8 @@ exports.register = async (req, res) => {
         }
 
         // 2. VALIDACIÓN PREVIA (Texto plano)
-        // Creamos la instancia para validar los 13-15 caracteres originales
-        const userValidation = User.build({ nombre_completo, email, password, role });
+        // Usamos el modelo para validar los 13-15 caracteres antes de encriptar
+        const userValidation = User.build({ nombre_completo, email, password, role: role || 'User' });
         
         try {
             await userValidation.validate(); 
@@ -33,8 +33,8 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 4. CREACIÓN (Desactivando la segunda validación)
-        // Usamos { validate: false } para que Sequelize no se queje del tamaño del hash
+        // 4. CREACIÓN
+        // IMPORTANTE: role debe coincidir con User, Admin o Staff
         await User.create({
             nombre_completo,
             email,
@@ -62,31 +62,41 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // 1. Buscar usuario
         const user = await User.findOne({ where: { email } });
         if (!user) {
             return res.status(404).json({ success: false, message: "Usuario no encontrado" });
         }
 
+        // 2. Comparar contraseñas
         const validPassword = await bcrypt.compare(password, user.password);
-        
         if (!validPassword) {
             return res.status(401).json({ success: false, message: "Contraseña incorrecta" });
         }
 
-            const token = jwt.sign(
-            { id: user.id, role: user.role, nombre_completo: user.nombre_completo },
+        // 3. Generar TOKEN
+        // CRÍTICO: Si process.env.JWT_SECRET no existe en Railway, esto dará Error 500
+        if (!process.env.JWT_SECRET) {
+            console.error("ERROR: No se encontró la variable JWT_SECRET en el entorno.");
+            return res.status(500).json({ success: false, message: "Error de configuración en el servidor" });
+        }
+
+        const token = jwt.sign(
+            { id: user.id, role: user.role, nombre: user.nombre_completo },
             process.env.JWT_SECRET,
             { expiresIn: '2h' }
         );
 
+        // 4. Respuesta exitosa
         return res.json({ 
             success: true,
             token: token, 
-            role: user.role 
+            role: user.role,
+            nombre: user.nombre_completo // Enviamos el nombre para el Dashboard
         });
 
     } catch (error) {
         console.error("Error en login:", error);
-        return res.status(500).json({ success: false, message: "Error en el servidor" });
+        return res.status(500).json({ success: false, message: "Error interno en el servidor" });
     }
 };
