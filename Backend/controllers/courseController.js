@@ -80,4 +80,4 @@ exports.deleteCourse = async (req, res) => {
         console.error("Error al eliminar curso:", error);
         res.status(500).json({ success: false, message: "Error interno al eliminar" });
     }
-};
+};  

@@ -3,13 +3,13 @@ WORKDIR /app
 
 # Copiamos archivos de dependencias
 COPY package*.json ./
-RUN npm install
+RUN npm install --production
 
 # Copiamos el resto del código del Backend
 COPY . .
 
-# Exponemos el puerto que usa tu Express
+# Exponemos el puerto de tu servidor
 EXPOSE 8080
 
-# COMANDO CORRECTO PARA BACKEND (Sin npm run build)
+# Comando para arrancar el servidor de Node
 CMD ["node", "server.js"]
