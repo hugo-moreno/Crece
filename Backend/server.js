@@ -12,9 +12,9 @@ const resenaRoutes = require('./routes/resenaRoutes');
 const statsRoutes = require('./routes/statsRoutes'); 
 
 // --- Importación de Modelos ---
-// Importamos Inscripcion para que Sequelize lo registre antes del .sync()
 const Course = require('./models/course');
 const Inscripcion = require('./models/Inscripcion'); 
+const User = require('./models/User'); // Asegúrate de que User esté importado
 
 const app = express();
 
@@ -43,11 +43,11 @@ app.use('/api/resenas', resenaRoutes);
 app.use('/api/stats', statsRoutes); 
 
 app.get('/', (req, res) => {
-    res.send('🚀 El servidor de Hugo David Moreno Llamas está escuchando correctamente en Railway');
+    res.send('🚀 El servidor de Crece Online está escuchando correctamente en Railway');
 });
 
 // --- Encender Servidor ---
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080; // Railway suele preferir el 8080
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Servidor encendido en el puerto: ${PORT}`);
@@ -55,16 +55,18 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     sequelize.authenticate()
         .then(() => {
             console.log('✅ Conexión exitosa a la base de datos en Railway (MySQL)');
-            // Sincronizar modelos: alter: true permite agregar la tabla Inscripcion sin borrar datos existentes
-            return sequelize.sync({ alter: true });
+            
+            // --- CAMBIO CRÍTICO AQUÍ ---
+            // Quitamos { alter: true } para evitar el error ER_TOO_MANY_KEYS
+            return sequelize.sync(); 
         })
         .then(() => {
-            console.log('✅ Tablas sincronizadas correctamente en el servidor');
+            console.log('✅ Tablas sincronizadas correctamente (Modo Seguro)');
             console.log('🚀 Todo listo, el servidor de Crece Online está operativo');
         })
         .catch(err => {
             console.error('❌ Error en la base de datos:', err);
-            console.log('⚠️ El servidor sigue corriendo, pero revisa las variables de conexión');
+            console.log('⚠️ El servidor sigue corriendo, pero revisa los índices de la tabla users');
         });
 });
 
