@@ -47,6 +47,17 @@ const styles = `
   .btn-action { border: none; background: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: color 0.2s; }
   .btn-edit { color: var(--blue-mid); margin-right: 1rem; }
   .btn-delete { color: #ef4444; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(13, 42, 74, 0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal-content { background: white; width: 100%; max-width: 500px; padding: 2.5rem; position: relative; }
+  .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; color: var(--blue-dark); margin-bottom: 1.5rem; }
+  .modal-group { margin-bottom: 1.2rem; }
+  .modal-label { display: block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 0.5rem; }
+  .modal-input { width: 100%; padding: 0.8rem; border: 1px solid var(--gray-300); font-family: 'DM Sans', sans-serif; outline: none; }
+  .modal-input:focus { border-color: var(--blue-light); }
+  .modal-actions { display: flex; gap: 1rem; margin-top: 2rem; }
+  .btn-save { flex: 1; background: var(--blue-dark); color: white; border: none; padding: 1rem; cursor: pointer; font-weight: 600; }
+  .btn-cancel { flex: 1; background: var(--gray-100); color: var(--gray-500); border: 1px solid var(--gray-300); padding: 1rem; cursor: pointer; font-weight: 600; }
 `;
 
 function getInitials(name) {
@@ -61,40 +72,115 @@ export default function Admin() {
   const [usuarios, setUsuarios] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [stats, setStats] = useState({ totalCertificados: 0 });
+  
+  // Estados para el Modal (Crear y Editar)
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentId, setCurrentId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
+  const [formCurso, setFormCurso] = useState({
+    titulo: '', instructor: '', nivel: 'Principiante', videos: 0, descripcion: ''
+  });
 
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}');
   const userRole = localStorage.getItem('role');
   const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
+
+  const fetchData = async () => {
+    try {
+      const resUsers = await fetch(`${API_URL}/api/auth/users`);
+      const dataUsers = await resUsers.json();
+      setUsuarios(dataUsers);
+
+      const resCourses = await fetch(`${API_URL}/api/courses`);
+      const dataCourses = await resCourses.json();
+      setCursos(dataCourses.data || []);
+
+      const totalCertificados = dataUsers.reduce((acc, u) => acc + (u.completados || 0), 0);
+      setStats({ totalCertificados });
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+    }
+  };
 
   useEffect(() => {
     if (userRole !== 'Admin' && userRole !== 'Staff') {
       navigate('/dashboard');
       return;
     }
-
-    const fetchData = async () => {
-      try {
-        // 1. Cargar Usuarios
-        const resUsers = await fetch(`${API_URL}/api/auth/users`);
-        const dataUsers = await resUsers.json();
-        setUsuarios(dataUsers);
-
-        // 2. Cargar Cursos Reales
-        const resCourses = await fetch(`${API_URL}/api/courses`);
-        const dataCourses = await resCourses.json();
-        setCursos(dataCourses.data || []);
-
-        const totalCertificados = dataUsers.reduce((acc, u) => acc + (u.completados || 0), 0);
-        setStats({ totalCertificados });
-      } catch (error) {
-        console.error("Error cargando datos:", error);
-      }
-    };
-
     fetchData();
   }, [navigate, userRole]);
 
   const handleLogout = () => { localStorage.clear(); navigate('/'); };
+
+  // --- FUNCIONES DE CURSOS ---
+
+  const openCreateModal = () => {
+    setIsEditing(false);
+    setFormCurso({ titulo: '', instructor: '', nivel: 'Principiante', videos: 0, descripcion: '' });
+    setShowModal(true);
+  };
+
+  const openEditModal = (curso) => {
+    setIsEditing(true);
+    setCurrentId(curso.id);
+    setFormCurso({
+      titulo: curso.titulo,
+      instructor: curso.instructor,
+      nivel: curso.nivel,
+      videos: curso.videos,
+      descripcion: curso.descripcion || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleSaveCurso = async () => {
+    if(!formCurso.titulo || !formCurso.instructor) return alert("Llena los campos obligatorios");
+    setLoading(true);
+    
+    const method = isEditing ? 'PUT' : 'POST';
+    const url = isEditing ? `${API_URL}/api/courses/${currentId}` : `${API_URL}/api/courses`;
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
+        body: JSON.stringify(formCurso)
+      });
+
+      if (res.ok) {
+        setShowModal(false);
+        fetchData();
+      }
+    } catch (error) {
+      alert("Error en la operación");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCurso = async (id) => {
+    if(!window.confirm("¿Seguro que quieres eliminar este curso? Esta acción no se puede deshacer.")) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/courses/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      if (res.ok) {
+        fetchData();
+      } else {
+        alert("Error al eliminar. Revisa los permisos del backend.");
+      }
+    } catch (error) {
+      console.error("Error eliminando curso:", error);
+    }
+  };
 
   return (
     <>
@@ -127,7 +213,7 @@ export default function Admin() {
         <div className="admin-main">
           <div className="admin-page-title">
             {seccion === 'dashboard' && `Panel de ${userRole}`}
-            {seccion === 'cursos' && 'Catálogo de Cursos'}
+            {seccion === 'cursos' && 'Gestión de Contenidos'}
             {seccion === 'usuarios' && 'Control de Usuarios'}
           </div>
 
@@ -142,9 +228,14 @@ export default function Admin() {
 
           {seccion === 'cursos' && (
             <div className="table-wrap">
-              <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: '600' }}>CURSOS EN LA PLATAFORMA</span>
-                <button style={{ background: 'var(--blue-dark)', color: 'white', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer' }}>+ Nuevo Curso</button>
+              <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: '600', color: 'var(--gray-500)' }}>CATÁLOGO VIGENTE</span>
+                <button 
+                  style={{ background: 'var(--blue-dark)', color: 'white', border: 'none', padding: '0.6rem 1.2rem', cursor: 'pointer', fontWeight: '600' }}
+                  onClick={openCreateModal}
+                >
+                  + NUEVO CURSO
+                </button>
               </div>
               <table>
                 <thead>
@@ -153,12 +244,13 @@ export default function Admin() {
                 <tbody>
                   {cursos.map(c => (
                     <tr key={c.id}>
-                      <td>{c.titulo}</td>
+                      <td style={{fontWeight: '600'}}>{c.titulo}</td>
                       <td>{c.instructor}</td>
                       <td><span className="role-badge badge-user">{c.nivel}</span></td>
-                      <td>{c.videos}</td>
+                      <td>{c.videos} lecciones</td>
                       <td>
-                        <button className="btn-action btn-edit">Editar</button>
+                        <button className="btn-action btn-edit" onClick={() => openEditModal(c)}>Editar</button>
+                        <button className="btn-action btn-delete" onClick={() => handleDeleteCurso(c.id)}>Eliminar</button>
                       </td>
                     </tr>
                   ))}
@@ -190,6 +282,47 @@ export default function Admin() {
           )}
         </div>
       </div>
+
+      {/* Modal Unificado */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 className="modal-title">{isEditing ? 'Editar Curso' : 'Nuevo Curso'}</h3>
+            
+            <div className="modal-group">
+              <label className="modal-label">Título</label>
+              <input className="modal-input" value={formCurso.titulo} onChange={e => setFormCurso({...formCurso, titulo: e.target.value})} />
+            </div>
+
+            <div className="modal-group">
+              <label className="modal-label">Instructor</label>
+              <input className="modal-input" value={formCurso.instructor} onChange={e => setFormCurso({...formCurso, instructor: e.target.value})} />
+            </div>
+
+            <div className="modal-group" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
+              <div>
+                <label className="modal-label">Nivel</label>
+                <select className="modal-input" value={formCurso.nivel} onChange={e => setFormCurso({...formCurso, nivel: e.target.value})}>
+                  <option value="Principiante">Principiante</option>
+                  <option value="Intermedio">Intermedio</option>
+                  <option value="Avanzado">Avanzado</option>
+                </select>
+              </div>
+              <div>
+                <label className="modal-label">Videos</label>
+                <input type="number" className="modal-input" value={formCurso.videos} onChange={e => setFormCurso({...formCurso, videos: e.target.value})} />
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setShowModal(false)}>Cancelar</button>
+              <button className="btn-save" onClick={handleSaveCurso} disabled={loading}>
+                {loading ? 'Procesando...' : (isEditing ? 'Guardar Cambios' : 'Crear Curso')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
