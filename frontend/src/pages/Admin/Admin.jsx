@@ -41,6 +41,7 @@ const styles = `
 
   .role-badge { display: inline-block; padding: 0.2rem 0.7rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; border-radius: 4px; }
   .badge-admin { background: var(--blue-dark); color: white; }
+  .badge-staff { background: var(--blue-mist); color: var(--blue-mid); border: 1px solid var(--blue-pale); }
   .badge-user { background: var(--gray-100); color: var(--gray-500); border: 1px solid var(--gray-300); }
   
   .cert-count-pill { background: var(--blue-mist); color: var(--blue-mid); padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 700; font-size: 0.75rem; border: 1px solid var(--blue-pale); }
@@ -62,10 +63,12 @@ export default function Admin() {
   const [stats, setStats] = useState({ totalCursos: 6, totalCertificados: 0 });
 
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const userRole = localStorage.getItem('role'); // "Admin" o "Staff"
   const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
 
   useEffect(() => {
-    if (localStorage.getItem('role') !== 'Admin') {
+    // PROTECCIÓN ACTUALIZADA: Deja pasar a Admin y Staff
+    if (userRole !== 'Admin' && userRole !== 'Staff') {
       navigate('/dashboard');
       return;
     }
@@ -77,7 +80,6 @@ export default function Admin() {
         const data = await response.json();
         setUsuarios(data);
         
-        // Sumamos todos los certificados completados de la lista de usuarios
         const totalCertificados = data.reduce((acc, u) => acc + (u.completados || 0), 0);
         setStats(prev => ({ ...prev, totalCertificados }));
       } catch (error) {
@@ -86,7 +88,7 @@ export default function Admin() {
     };
 
     fetchUsuarios();
-  }, [navigate]);
+  }, [navigate, userRole]);
 
   const handleLogout = () => { localStorage.clear(); navigate('/'); };
 
@@ -113,13 +115,19 @@ export default function Admin() {
         <div className="admin-sidebar">
           <div className="admin-nav-section">General</div>
           <div className={`admin-nav-item ${seccion === 'dashboard' ? 'active' : ''}`} onClick={() => setSeccion('dashboard')}>Dashboard</div>
-          <div className="admin-nav-section">Usuarios</div>
-          <div className={`admin-nav-item ${seccion === 'usuarios' ? 'active' : ''}`} onClick={() => setSeccion('usuarios')}>Todos los usuarios</div>
+          
+          {/* BLINDAJE: Solo el Admin ve la gestión de usuarios */}
+          {userRole === 'Admin' && (
+            <>
+              <div className="admin-nav-section">Usuarios</div>
+              <div className={`admin-nav-item ${seccion === 'usuarios' ? 'active' : ''}`} onClick={() => setSeccion('usuarios')}>Todos los usuarios</div>
+            </>
+          )}
         </div>
 
         <div className="admin-main">
           <div className="admin-page-title">
-            {seccion === 'dashboard' ? 'Panel de Control' : 'Usuarios Registrados'}
+            {seccion === 'dashboard' ? `Panel de ${userRole}` : 'Gestión de Alumnos'}
           </div>
 
           {seccion === 'dashboard' && (
@@ -131,63 +139,54 @@ export default function Admin() {
             </div>
           )}
 
-          <div className="table-wrap">
-            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--gray-500)' }}>LISTADO DE ALUMNOS</span>
-              <input 
-                type="text" 
-                placeholder="Buscar por nombre o email..." 
-                style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '4px', width: '250px', outline: 'none' }}
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-              />
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Email</th>
-                  <th>Rol</th>
-                  <th style={{ textAlign: 'center' }}>Certificados</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usuariosFiltrados.length > 0 ? (
-                  usuariosFiltrados.map(u => (
-                    <tr key={u.id}>
-                      <td style={{ fontWeight: '500' }}>{u.nombre_completo}</td>
-                      <td style={{ color: 'var(--gray-500)' }}>{u.email}</td>
-                      <td>
-                        <span className={`role-badge badge-${u.role?.toLowerCase()}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="cert-count-pill">
-                          {u.completados || 0}
-                        </span>
-                      </td>
-                      <td>
-                        <button 
-                          style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '500' }}
-                          onClick={() => alert('Función de eliminar en desarrollo')}
-                        >
-                          Eliminar
-                        </button>
-                      </td>
+          {/* Si eres Staff y tratas de entrar a usuarios, te mostramos un aviso */}
+          {seccion === 'usuarios' && userRole !== 'Admin' ? (
+             <div style={{padding: '2rem', textAlign: 'center'}}>No tienes permisos para gestionar usuarios.</div>
+          ) : (
+            seccion === 'usuarios' && (
+              <div className="table-wrap">
+                <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--gray-500)' }}>LISTADO DE ALUMNOS</span>
+                  <input 
+                    type="text" 
+                    placeholder="Buscar..." 
+                    style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '4px', width: '250px' }}
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                  />
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Email</th>
+                      <th>Rol</th>
+                      <th style={{ textAlign: 'center' }}>Certificados</th>
+                      <th>Acciones</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                      No se encontraron usuarios registrados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {usuariosFiltrados.map(u => (
+                      <tr key={u.id}>
+                        <td style={{ fontWeight: '500' }}>{u.nombre_completo}</td>
+                        <td style={{ color: 'var(--gray-500)' }}>{u.email}</td>
+                        <td><span className={`role-badge badge-${u.role?.toLowerCase()}`}>{u.role}</span></td>
+                        <td style={{ textAlign: 'center' }}><span className="cert-count-pill">{u.completados || 0}</span></td>
+                        <td>
+                          {/* SOLO ADMIN PUEDE ELIMINAR */}
+                          {userRole === 'Admin' ? (
+                            <button style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>Eliminar</button>
+                          ) : (
+                            <span style={{fontSize: '0.7rem', color: '#ccc'}}>Solo lectura</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
         </div>
       </div>
     </>
