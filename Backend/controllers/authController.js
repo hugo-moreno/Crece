@@ -6,18 +6,21 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 
-// --- 0. CONFIGURACIÓN DE NODEMAILER (OPTIMIZADA PARA RAILWAY) ---
+// --- 0. CONFIGURACIÓN DE NODEMAILER (MODO SEGURO PARA RAILWAY) ---
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,
-    secure: false, 
+    port: 465, // Cambiado a 465 para conexión SSL directa
+    secure: true, // true para puerto 465
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS 
     },
+    // Ajustes para evitar el ETIMEDOUT en servidores cloud
+    connectionTimeout: 10000, 
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
     tls: {
-        rejectUnauthorized: false, 
-        minVersion: "TLSv1.2"
+        rejectUnauthorized: false
     }
 });
 
@@ -84,20 +87,29 @@ exports.forgotPassword = async (req, res) => {
             to: user.email,
             subject: 'Recuperación de contraseña - Crece Online',
             html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
-                    <h2 style="color: #0d2a4a;">Crece Online</h2>
-                    <p>Hola ${user.nombre_completo}, haz clic abajo para restablecer tu clave:</p>
-                    <a href="${resetUrl}" style="background: #0d2a4a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Restablecer Contraseña</a>
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
+                    <h2 style="color: #0d2a4a; text-align: center;">Crece Online</h2>
+                    <p>Hola <strong>${user.nombre_completo}</strong>,</p>
+                    <p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el botón de abajo:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetUrl}" style="background: #0d2a4a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
+                    </div>
+                    <p style="color: #777; font-size: 0.8em;">Este enlace es válido por 1 hora.</p>
                 </div>
             `
         };
 
+        // Verificamos conexión y enviamos
         await transporter.verify();
         await transporter.sendMail(mailOptions);
-        res.json({ success: true, message: "Correo enviado." });
+        
+        res.json({ success: true, message: "Correo enviado correctamente." });
     } catch (error) {
-        console.error("Error detallado:", error);
-        res.status(500).json({ success: false, message: "Error al enviar." });
+        console.error("Error detallado en el envío:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "No se pudo enviar el correo. Revisa la configuración del servidor." 
+        });
     }
 };
 
@@ -109,15 +121,18 @@ exports.resetPassword = async (req, res) => {
         const user = await User.findOne({
             where: { resetToken: token, resetExpires: { [Op.gt]: Date.now() } }
         });
-        if (!user) return res.status(400).json({ success: false, message: "Token inválido." });
+        if (!user) return res.status(400).json({ success: false, message: "El enlace es inválido o ha caducado." });
+        
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
         user.resetToken = null;
         user.resetExpires = null;
         await user.save();
-        res.json({ success: true, message: "Actualizada." });
+        
+        res.json({ success: true, message: "Tu contraseña ha sido actualizada correctamente." });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Error." });
+        console.error("Error en resetPassword:", error);
+        res.status(500).json({ success: false, message: "Error al actualizar la contraseña." });
     }
 };
 
@@ -131,6 +146,6 @@ exports.getAllUsers = async (req, res) => {
         }));
         res.json(usersWithStats);
     } catch (error) {
-        res.status(500).json({ message: "Error." });
+        res.status(500).json({ message: "Error al obtener usuarios." });
     }
 };
