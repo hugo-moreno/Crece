@@ -104,8 +104,10 @@ exports.forgotPassword = async (req, res) => {
         user.resetExpires = Date.now() + 3600000; 
         await user.save();
 
-        // Enlace para el frontend (Sin diagonal al final)
-        const baseUrl = process.env.FRONTEND_URL.replace(/\/$/, "");
+        // --- PARCHE DE SEGURIDAD PARA LA URL ---
+        // Si la variable no existe en el backend, usamos la URL directa para que no truene el replace
+        const rawUrl = process.env.FRONTEND_URL || "https://crece-production.up.railway.app";
+        const baseUrl = rawUrl.replace(/\/$/, ""); 
         const resetUrl = `${baseUrl}/reset-password/${token}`;
 
         const mailOptions = {
