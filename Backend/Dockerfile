@@ -1,13 +1,15 @@
 FROM node:22-alpine
 WORKDIR /app
 
-# Al estar ya en la carpeta Backend, usamos ./
+# Al estar el Dockerfile dentro de Backend, copiamos lo que hay ahí
 COPY package*.json ./
 RUN npm install
 
-# Copiamos todo lo que está dentro de Backend a la carpeta /app del contenedor
+# Copiamos todo el contenido de la carpeta Backend
 COPY . .
 
-# Importante: Tu servidor usa el 8080 en Railway, asegúrate de que coincida
+# Exponemos el puerto de tu servidor
 EXPOSE 8080
+
+# Comando para arrancar
 CMD ["node", "server.js"]
