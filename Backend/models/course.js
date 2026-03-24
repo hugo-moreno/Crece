@@ -19,19 +19,23 @@ const Course = sequelize.define('Course', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    // --- AGREGAMOS ESTOS DOS PARA EL STAFF ---
     nivel: { 
         type: DataTypes.ENUM('Principiante', 'Intermedio', 'Avanzado'), 
         defaultValue: 'Principiante' 
     },
-    videos: { 
+    // CAMBIO: Ahora contamos lecciones/diapositivas
+    lecciones: { 
         type: DataTypes.INTEGER, 
         defaultValue: 0 
     },
-    // -----------------------------------------
+    // NUEVO: Aquí guardaremos la ruta de tus carpetas (ej: /assets/cursos/word)
+    ruta_assets: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     imagen_url: {
         type: DataTypes.STRING,
-        defaultValue: 'https://via.placeholder.com/150'
+        defaultValue: '/logo2.png' // Puedes usar tu logo como default
     }
 }, {
     tableName: 'courses',
