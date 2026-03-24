@@ -5,21 +5,24 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
+const dns = require('dns'); // Necesario para el parche de IPv4
 
-// --- 0. CONFIGURACIÓN DE NODEMAILER (MODO COMPATIBLE IPv4 PARA RAILWAY) ---
+// --- 0. CONFIGURACIÓN DE NODEMAILER (SOLUCIÓN DEFINITIVA IPv4) ---
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
-    secure: true, // true para puerto 465
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS 
     },
-    // Forzamos a Node.js a usar IPv4 (familia 4) para evitar ENETUNREACH
-    family: 4, 
-    connectionTimeout: 15000, 
-    greetingTimeout: 15000,
-    socketTimeout: 15000,
+    // PARCHE CRÍTICO: Forzamos la resolución de DNS a IPv4 para evitar ENETUNREACH
+    dnsLookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+    },
+    connectionTimeout: 20000, 
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
     tls: {
         rejectUnauthorized: false,
         servername: 'smtp.gmail.com'
