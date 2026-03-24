@@ -6,21 +6,23 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 
-// --- 0. CONFIGURACIÓN DE NODEMAILER (MODO SEGURO PARA RAILWAY) ---
+// --- 0. CONFIGURACIÓN DE NODEMAILER (MODO COMPATIBLE IPv4 PARA RAILWAY) ---
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465, // Cambiado a 465 para conexión SSL directa
+    port: 465,
     secure: true, // true para puerto 465
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS 
     },
-    // Ajustes para evitar el ETIMEDOUT en servidores cloud
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    // Forzamos a Node.js a usar IPv4 (familia 4) para evitar ENETUNREACH
+    family: 4, 
+    connectionTimeout: 15000, 
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
     tls: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        servername: 'smtp.gmail.com'
     }
 });
 
