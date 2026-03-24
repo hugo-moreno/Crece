@@ -6,17 +6,16 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 
-// --- 0. CONFIGURACIÓN DE NODEMAILER (MÉTODO SERVICE - EL MÁS ESTABLE) ---
+// --- 0. CONFIGURACIÓN DE CORREO (USANDO RESEND PARA EVITAR BLOQUEOS) ---
+// Recuerda agregar RESEND_API_KEY en tus variables de Railway
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Al usar 'service', Nodemailer ya sabe qué puertos usar para evitar bloqueos
+    host: "smtp.resend.com",
+    secure: true,
+    port: 465,
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS 
-    },
-    // Añadimos un pool para mantener la conexión activa y evitar timeouts
-    pool: true,
-    maxConnections: 1,
-    maxMessages: 5
+        user: "resend",
+        pass: process.env.RESEND_API_KEY
+    }
 });
 
 // --- 1. REGISTRO DE USUARIOS ---
@@ -66,7 +65,10 @@ exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(404).json({ success: false, message: "No existe el usuario." });
+        
+        if (!user) {
+            return res.status(404).json({ success: false, message: "No existe el usuario." });
+        }
 
         const token = crypto.randomBytes(20).toString('hex');
         user.resetToken = token;
@@ -78,7 +80,8 @@ exports.forgotPassword = async (req, res) => {
         const resetUrl = `${baseUrl}/reset-password/${token}`;
 
         const mailOptions = {
-            from: `"Crece Online" <${process.env.EMAIL_USER}>`,
+            // NOTA: Resend gratuito solo permite enviar desde onboarding@resend.dev
+            from: "Crece Online <onboarding@resend.dev>", 
             to: user.email,
             subject: 'Recuperación de contraseña - Crece Online',
             html: `
@@ -89,22 +92,21 @@ exports.forgotPassword = async (req, res) => {
                     <div style="text-align: center; margin: 30px 0;">
                         <a href="${resetUrl}" style="background: #0d2a4a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
                     </div>
-                    <p style="color: #777; font-size: 0.8em;">Este enlace es válido por 1 hora. Si no solicitaste esto, ignora este correo.</p>
+                    <p style="color: #777; font-size: 0.8em; text-align: center;">Este enlace es válido por 1 hora.</p>
                 </div>
             `
         };
 
-        // Verificamos conexión y enviamos
-        await transporter.verify();
         await transporter.sendMail(mailOptions);
         
-        console.log(`✅ Correo enviado con éxito a: ${user.email}`);
+        console.log(`✅ Correo enviado vía Resend a: ${user.email}`);
         res.json({ success: true, message: "Correo enviado correctamente." });
+        
     } catch (error) {
-        console.error("❌ Error detallado en el envío:", error);
+        console.error("❌ ERROR REAL EN EL ENVÍO:", error);
         res.status(500).json({ 
             success: false, 
-            message: "No se pudo enviar el correo. Revisa la configuración del servidor." 
+            message: "Error al procesar el envío: " + error.message 
         });
     }
 };
