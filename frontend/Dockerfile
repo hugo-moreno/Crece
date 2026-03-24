@@ -6,8 +6,10 @@ RUN npm install
 
 COPY . .
 
-# Exponemos el puerto de Vite
-EXPOSE 5173
+# Generamos la carpeta dist
+RUN npm run build
 
-# Arrancamos en modo desarrollo para que Railway no pida el build por ahora
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Usamos un servidor ligero para mostrar el sitio
+RUN npm install -g serve
+EXPOSE 5173
+CMD ["serve", "-s", "dist", "-l", "5173"]
