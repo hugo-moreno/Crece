@@ -5,28 +5,18 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
-const dns = require('dns'); // Necesario para el parche de IPv4
 
-// --- 0. CONFIGURACIÓN DE NODEMAILER (SOLUCIÓN DEFINITIVA IPv4) ---
+// --- 0. CONFIGURACIÓN DE NODEMAILER (MÉTODO SERVICE - EL MÁS ESTABLE) ---
 const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    service: 'gmail', // Al usar 'service', Nodemailer ya sabe qué puertos usar para evitar bloqueos
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS 
     },
-    // PARCHE CRÍTICO: Forzamos la resolución de DNS a IPv4 para evitar ENETUNREACH
-    dnsLookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-    },
-    connectionTimeout: 20000, 
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
-    tls: {
-        rejectUnauthorized: false,
-        servername: 'smtp.gmail.com'
-    }
+    // Añadimos un pool para mantener la conexión activa y evitar timeouts
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 5
 });
 
 // --- 1. REGISTRO DE USUARIOS ---
@@ -99,7 +89,7 @@ exports.forgotPassword = async (req, res) => {
                     <div style="text-align: center; margin: 30px 0;">
                         <a href="${resetUrl}" style="background: #0d2a4a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
                     </div>
-                    <p style="color: #777; font-size: 0.8em;">Este enlace es válido por 1 hora.</p>
+                    <p style="color: #777; font-size: 0.8em;">Este enlace es válido por 1 hora. Si no solicitaste esto, ignora este correo.</p>
                 </div>
             `
         };
@@ -108,9 +98,10 @@ exports.forgotPassword = async (req, res) => {
         await transporter.verify();
         await transporter.sendMail(mailOptions);
         
+        console.log(`✅ Correo enviado con éxito a: ${user.email}`);
         res.json({ success: true, message: "Correo enviado correctamente." });
     } catch (error) {
-        console.error("Error detallado en el envío:", error);
+        console.error("❌ Error detallado en el envío:", error);
         res.status(500).json({ 
             success: false, 
             message: "No se pudo enviar el correo. Revisa la configuración del servidor." 
