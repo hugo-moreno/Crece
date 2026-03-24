@@ -170,14 +170,24 @@ export default function Dashboard() {
     disponibles: cursosDisponibles.length,
     promedio: "—",
     idsUsuario: [],
-    detallesCursos: {} // Recibimos el objeto { cursoId: estado }
+    detallesCursos: {} 
   });
 
   const API_URL = "https://respectful-manifestation-production-5441.up.railway.app";
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
     if (!token) { navigate("/login"); return; }
+
+    // --- INTERRUPTOR DE REDIRECCIÓN (STAFF/ADMIN) ---
+    // Si el usuario es Staff o Admin, no debe estar aquí.
+    if (role === "Staff" || role === "Admin") {
+        console.log(`Rol ${role} detectado en Dashboard. Redirigiendo a /admin...`);
+        navigate("/admin");
+        return;
+    }
     
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
@@ -214,13 +224,11 @@ export default function Dashboard() {
   };
 
   const handleCourseClick = async (id) => {
-    // Si el curso ya ha sido finalizado, tal vez quieras enviarlo al certificado directamente
     if (stats.detallesCursos?.[id] === 'completado') {
         navigate(`/certificado/${id}`);
         return;
     }
 
-    // Si no está en la lista, inscribimos como 'cursando'
     if (!stats.idsUsuario?.includes(id)) {
       try {
         await fetch(`${API_URL}/api/stats/inscribir`, {

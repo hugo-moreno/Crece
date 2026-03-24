@@ -233,10 +233,10 @@ export default function Login() {
       // --- GUARDADO DE SEGURIDAD ---
       localStorage.setItem("token", data.token);
       
+      // Normalizamos el rol a un solo campo para evitar confusiones
       const userRole = data.role || data.rol || 'User';
       localStorage.setItem("role", userRole);
 
-      // Guardamos el ID real para evitar errores de undefined en certificados/dashboard
       const userId = data.id || data.usuarioId || (data.user ? data.user.id : null);
 
       localStorage.setItem("usuario", JSON.stringify({
@@ -246,12 +246,12 @@ export default function Login() {
         role: userRole
       }));
 
-      // --- REDIRECCIÓN INTELIGENTE ---
-      if (userRole === 'Admin') {
-        console.log("Acceso de Administrador detectado");
+      // --- REDIRECCIÓN INTELIGENTE (ADMIN Y STAFF) ---
+      if (userRole === 'Admin' || userRole === 'Staff') {
+        console.log(`Acceso de ${userRole} detectado. Redirigiendo a panel administrativo...`);
         navigate("/admin");
       } else {
-        console.log("Acceso de Usuario estándar detectado");
+        console.log("Acceso de Usuario estándar detectado. Redirigiendo a Dashboard...");
         navigate("/dashboard");
       }
 
