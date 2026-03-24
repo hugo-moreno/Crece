@@ -3,10 +3,13 @@ const router = express.Router();
 const courseController = require('../controllers/courseController');
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 
-// Cualquier usuario logueado puede ver cursos
-router.get('/', verifyToken, courseController.getAllCourses);
+// Ver cursos (Público)
+router.get('/', courseController.getAllCourses);
 
-// Solo el Admin (Hugo) puede crear cursos nuevos
-router.post('/', verifyToken, checkRole(['Admin']), courseController.createCourse);
+// Crear curso (Admin y Staff)
+router.post('/', verifyToken, checkRole(['Admin', 'Staff']), courseController.createCourse);
+
+// Editar curso (Admin y Staff) - El ID es necesario para saber cuál editar
+router.put('/:id', verifyToken, checkRole(['Admin', 'Staff']), courseController.updateCourse);
 
 module.exports = router;

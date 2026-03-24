@@ -1,6 +1,6 @@
 const Course = require('../models/course');
 
-// Obtener todos los cursos (Público para alumnos)
+// 1. Obtener todos los cursos
 exports.getAllCourses = async (req, res) => {
     try {
         const courses = await Course.findAll();
@@ -10,13 +10,51 @@ exports.getAllCourses = async (req, res) => {
     }
 };
 
-// Crear un curso (Solo para Hugo o alguien con rol Admin)
+// 2. Crear un curso (Admin o Staff)
 exports.createCourse = async (req, res) => {
     try {
-        const { titulo, descripcion, instructor, imagen_url } = req.body;
-        const newCourse = await Course.create({ titulo, descripcion, instructor, imagen_url });
+        // Agregamos nivel y videos que vienen del formulario del Admin.jsx
+        const { titulo, descripcion, instructor, imagen_url, nivel, videos } = req.body;
+        
+        const newCourse = await Course.create({ 
+            titulo, 
+            descripcion, 
+            instructor, 
+            imagen_url,
+            nivel: nivel || 'Principiante',
+            videos: videos || 0
+        });
+
         res.status(201).json({ success: true, message: "Curso creado con éxito", data: newCourse });
     } catch (error) {
+        console.error("Error al crear curso:", error);
         res.status(400).json({ success: false, message: "Error al crear curso" });
+    }
+};
+
+// 3. Actualizar un curso (Función vital para el Staff)
+exports.updateCourse = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { titulo, descripcion, instructor, imagen_url, nivel, videos } = req.body;
+
+        const curso = await Course.findByPk(id);
+        if (!curso) {
+            return res.status(404).json({ success: false, message: "Curso no encontrado" });
+        }
+
+        await curso.update({
+            titulo,
+            descripcion,
+            instructor,
+            imagen_url,
+            nivel,
+            videos
+        });
+
+        res.json({ success: true, message: "Curso actualizado correctamente", data: curso });
+    } catch (error) {
+        console.error("Error al actualizar curso:", error);
+        res.status(400).json({ success: false, message: "Error al actualizar el curso" });
     }
 };

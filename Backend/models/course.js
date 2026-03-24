@@ -19,13 +19,23 @@ const Course = sequelize.define('Course', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    // --- AGREGAMOS ESTOS DOS PARA EL STAFF ---
+    nivel: { 
+        type: DataTypes.ENUM('Principiante', 'Intermedio', 'Avanzado'), 
+        defaultValue: 'Principiante' 
+    },
+    videos: { 
+        type: DataTypes.INTEGER, 
+        defaultValue: 0 
+    },
+    // -----------------------------------------
     imagen_url: {
         type: DataTypes.STRING,
-        defaultValue: 'https://via.placeholder.com/150' // Para que el frontend siempre tenga algo que mostrar
+        defaultValue: 'https://via.placeholder.com/150'
     }
 }, {
     tableName: 'courses',
-    timestamps: true // Esto crea 'createdAt' y 'updatedAt' automáticamente
+    timestamps: true 
 });
 
 module.exports = Course;
