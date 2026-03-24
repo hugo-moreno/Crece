@@ -45,8 +45,9 @@ export default function CoursePlayer() {
     fetchCurso();
   }, [id, navigate]);
 
-  if (loading) return <div style={{color: 'white', background: '#0d2a4a', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Cargando contenido técnico...</div>;
-  if (!curso) return <div style={{textAlign: 'center', marginTop: '50px'}}>Curso no encontrado.</div>;
+  // Pantalla de carga mientras se obtienen los datos del servidor
+  if (loading) return <div style={{color: 'white', background: '#0d2a4a', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif'}}>Cargando material técnico...</div>;
+  if (!curso) return <div style={{textAlign: 'center', marginTop: '50px', fontFamily: 'DM Sans, sans-serif'}}>Curso no encontrado.</div>;
 
   const handleNext = () => {
     if (slideIndex < curso.lecciones) setSlideIndex(slideIndex + 1);
@@ -91,13 +92,13 @@ export default function CoursePlayer() {
               {fullScreen ? "✕ Salir" : "⛶ Agrandar"}
             </button>
 
-            {/* CARGA DINÁMICA: Aseguramos que la ruta sea relativa al servidor */}
+            {/* CARGA DINÁMICA: Ajustado para el nombre DiapositivaX.PNG */}
             <img 
-              src={`${curso.ruta_assets}/slide${slideIndex}.PNG`} 
+              src={`${curso.ruta_assets}/Diapositiva${slideIndex}.PNG`} 
               alt={`Diapositiva ${slideIndex}`}
               className="slide-image"
               onError={(e) => { 
-                // Si falla, intentamos cargar el logo como respaldo
+                // Si la imagen falla (ej. error de ruta), intentamos cargar el logo
                 if (!e.target.src.includes('logo2.png')) {
                   e.target.src = "/logo2.png"; 
                 }
@@ -120,9 +121,9 @@ export default function CoursePlayer() {
           {!fullScreen && (
             <div className="module-info">
               <div className="module-breadcrumb">Curso: {curso.titulo}</div>
-              <div className="module-title">Material de Estudio</div>
+              <div className="module-title">Material de Estudio Técnico</div>
               <p className="module-desc">
-                Instructor: {curso.instructor}. Revisa las diapositivas detalladamente para completar tu formación técnica.
+                Instructor: {curso.instructor}. Revisa las diapositivas detalladamente antes de presentar tu evaluación final.
               </p>
             </div>
           )}
@@ -143,8 +144,8 @@ export default function CoursePlayer() {
                <div className="modulo-item activo">
                   <div className="modulo-icon activo-icon">1</div>
                   <div className="modulo-info-text">
-                    <div className="modulo-nombre">Diapositivas .PNG</div>
-                    <div className="modulo-duracion">{curso.lecciones} láminas</div>
+                    <div className="modulo-nombre">Diapositivas del Curso</div>
+                    <div className="modulo-duracion">{curso.lecciones} láminas .PNG</div>
                   </div>
                </div>
             </div>
