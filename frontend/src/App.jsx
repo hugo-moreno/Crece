@@ -10,6 +10,10 @@ import Certificado from './pages/Certificado/Certificado'
 import Admin from './pages/Admin/Admin'
 import Opiniones from './pages/Opiniones/Opiniones'
 
+// --- NUEVAS IMPORTACIONES DE RECUPERACIÓN ---
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+
 // --- Protección de Rutas para Alumnos (User) ---
 function PrivateRoute({ children }) {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -25,16 +29,13 @@ function PrivateRoute({ children }) {
 // --- Protección de Rutas para Gestión (Admin y Staff) ---
 function AdminRoute({ children }) {
   const token = localStorage.getItem('token');
-  // Usamos el rol guardado en localStorage (Admin o Staff)
   const role = (localStorage.getItem('role') || '').toLowerCase();
   
   if (!token) return <Navigate to="/login" replace />;
   
-  // CORRECCIÓN CLAVE: Permitir acceso si es admin O staff
   const hasAccess = role === 'admin' || role === 'staff';
   
   if (!hasAccess) {
-    // Si es un alumno tratando de entrar a /admin, lo mandamos a su dashboard
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -50,6 +51,10 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
+        {/* RUTAS DE RECUPERACIÓN (PÚBLICAS) */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        
         {/* Ruta para reseñas */}
         <Route path="/opinar" element={<Opiniones />} />
         
@@ -63,7 +68,7 @@ function App() {
         <Route path="/resultado/:id" element={<PrivateRoute><Resultado /></PrivateRoute>} />
         <Route path="/certificado/:id" element={<PrivateRoute><Certificado /></PrivateRoute>} />
         
-        {/* Rutas de Gestión: Ahora accesibles para Hugo (Staff) y Virginia (Admin) */}
+        {/* Rutas de Gestión: Hugo (Staff) y Virginia (Admin) */}
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         
         {/* Redirección por defecto si la ruta no existe */}

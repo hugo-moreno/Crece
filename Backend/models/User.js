@@ -21,19 +21,12 @@ const User = sequelize.define('User', {
     },
     password: {
         type: DataTypes.STRING,
-        // CAMBIO AQUÍ: Debe ser minúsculas para coincidir con SQLyog
         field: 'password', 
         allowNull: false,
         validate: {
             len: {
-                args: [13, 15],
-                msg: "La contraseña debe tener entre 13 y 15 caracteres."
-            },
-            isComplex(value) {
-                const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/;
-                if (!regex.test(value)) {
-                    throw new Error("La contraseña debe incluir mayúsculas, minúsculas y al menos un carácter especial.");
-                }
+                args: [13, 100], // Aumenté el máximo porque al encriptar se vuelve larga
+                msg: "La contraseña debe tener al menos 13 caracteres."
             }
         }
     },
@@ -42,6 +35,18 @@ const User = sequelize.define('User', {
         field: 'role', 
         defaultValue: 'User'
     },
+    // --- NUEVOS CAMPOS PARA RECUPERACIÓN ---
+    resetToken: {
+        type: DataTypes.STRING,
+        field: 'reset_token',
+        allowNull: true
+    },
+    resetExpires: {
+        type: DataTypes.DATE,
+        field: 'reset_expires',
+        allowNull: true
+    },
+    // ---------------------------------------
     fechaRegistro: {
         type: DataTypes.DATE,
         field: 'fecha_registro',

@@ -7,10 +7,14 @@ const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 router.post('/login', authController.login);
 router.post('/register', authController.register);
 
+// --- NUEVAS RUTAS DE RECUPERACIÓN (PÚBLICAS) ---
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password/:token', authController.resetPassword);
+
 // --- RUTAS PROTEGIDAS (Requieren Token) ---
 
 /**
- * 1. LISTAR TODOS LOS USUARIOS (NUEVA RUTA PARA EL ADMIN)
+ * 1. LISTAR TODOS LOS USUARIOS (PARA EL ADMIN)
  * GET /api/auth/users
  */
 router.get('/users', authController.getAllUsers);
@@ -41,7 +45,7 @@ router.get('/reportes', verifyToken, checkRole(['Admin', 'Staff']), (req, res) =
     });
 });
 
-// Panel de Control Maestro (Solo Admin - Hugo/Virginia)
+// Panel de Control Maestro (Solo Admin)
 router.get('/admin-total', verifyToken, checkRole(['Admin']), (req, res) => {
     res.json({ 
         success: true,
