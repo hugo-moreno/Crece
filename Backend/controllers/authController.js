@@ -6,12 +6,18 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 
-// --- 0. CONFIGURACIÓN DE NODEMAILER (GMAIL) ---
+// --- 0. CONFIGURACIÓN DE NODEMAILER (OPTIMIZADA PARA RAILWAY) ---
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // false para puerto 587 (usa STARTTLS)
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS // Tu contraseña de aplicación de 16 letras
+        pass: process.env.EMAIL_PASS // Tu contraseña de aplicación (sin espacios)
+    },
+    tls: {
+        rejectUnauthorized: false, // Evita errores de certificados en servidores externos
+        minVersion: "TLSv1.2"
     }
 });
 
@@ -98,8 +104,9 @@ exports.forgotPassword = async (req, res) => {
         user.resetExpires = Date.now() + 3600000; 
         await user.save();
 
-        // Enlace para el frontend
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+        // Enlace para el frontend (Sin diagonal al final)
+        const baseUrl = process.env.FRONTEND_URL.replace(/\/$/, "");
+        const resetUrl = `${baseUrl}/reset-password/${token}`;
 
         const mailOptions = {
             from: `"Crece Online" <${process.env.EMAIL_USER}>`,
@@ -107,23 +114,30 @@ exports.forgotPassword = async (req, res) => {
             subject: 'Recuperación de contraseña - Crece Online',
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
-                    <h2 style="color: #0d2a4a;">Hola, ${user.nombre_completo}</h2>
-                    <p>Has solicitado restablecer tu contraseña en la plataforma <strong>Crece Online</strong>.</p>
-                    <p>Haz clic en el botón de abajo para elegir una nueva contraseña:</p>
+                    <h2 style="color: #0d2a4a; text-align: center;">Crece Online</h2>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p>Hola, <strong>${user.nombre_completo}</strong>,</p>
+                    <p>Recibimos una solicitud para restablecer tu contraseña. Si no fuiste tú, puedes ignorar este correo.</p>
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="${resetUrl}" style="background: #0d2a4a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
+                        <a href="${resetUrl}" style="background: #0d2a4a; color: white; padding: 14px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Restablecer mi contraseña</a>
                     </div>
-                    <p style="color: #555; font-size: 0.9em;">Este enlace es válido por 1 hora. Si no solicitaste este cambio, puedes ignorar este correo.</p>
+                    <p style="color: #777; font-size: 0.8em; text-align: center;">Este enlace expirará en 1 hora por motivos de seguridad.</p>
                 </div>
             `
         };
 
+        // Verificamos la conexión antes de enviar
+        await transporter.verify();
         await transporter.sendMail(mailOptions);
-        res.json({ success: true, message: "Correo de recuperación enviado." });
+        
+        res.json({ success: true, message: "Correo de recuperación enviado con éxito." });
 
     } catch (error) {
-        console.error("Error en forgotPassword:", error);
-        res.status(500).json({ success: false, message: "Hubo un error al enviar el correo." });
+        console.error("Error detallado en forgotPassword:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Hubo un problema técnico al enviar el correo. Por favor, intenta más tarde." 
+        });
     }
 };
 
@@ -136,24 +150,24 @@ exports.resetPassword = async (req, res) => {
         const user = await User.findOne({
             where: {
                 resetToken: token,
-                resetExpires: { [Op.gt]: Date.now() } // Verifica que el token no haya expirado
+                resetExpires: { [Op.gt]: Date.now() } // Verifica que el token sea válido y vigente
             }
         });
 
         if (!user) {
-            return res.status(400).json({ success: false, message: "El token es inválido o ha expirado." });
+            return res.status(400).json({ success: false, message: "El enlace es inválido o ha caducado." });
         }
 
         // Encriptar la nueva contraseña
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
         
-        // Limpiar campos de token
+        // Limpiar campos de token para que no se use dos veces
         user.resetToken = null;
         user.resetExpires = null;
         await user.save();
 
-        res.json({ success: true, message: "Tu contraseña ha sido actualizada correctamente." });
+        res.json({ success: true, message: "Tu contraseña ha sido actualizada. Ya puedes iniciar sesión." });
 
     } catch (error) {
         console.error("Error en resetPassword:", error);
