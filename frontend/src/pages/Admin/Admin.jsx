@@ -12,7 +12,7 @@ const styles = `
   body { font-family: 'DM Sans', sans-serif; background: var(--white); color: var(--gray-800); }
 
   .anav { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 3rem; background: white; border-bottom: 1px solid var(--gray-300); position: sticky; top: 0; z-index: 50; }
-  .anav-brand { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 700; color: var(--blue-dark); letter-spacing: -0.02em; cursor: pointer; }
+  .anav-brand { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 700; color: var(--blue-dark); cursor: pointer; }
   .anav-right { display: flex; align-items: center; gap: 1.5rem; }
   .anav-avatar { width: 32px; height: 32px; background: var(--blue-dark); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; }
   .anav-name { font-size: 0.85rem; color: var(--gray-500); text-transform: capitalize; }
@@ -73,14 +73,13 @@ export default function Admin() {
   const [cursos, setCursos] = useState([]);
   const [stats, setStats] = useState({ totalCertificados: 0 });
   
-  // Estados para el Modal (Crear y Editar)
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const [loading, setLoading] = useState(false);
   
   const [formCurso, setFormCurso] = useState({
-    titulo: '', instructor: '', nivel: 'Principiante', videos: 0, descripcion: ''
+    titulo: '', instructor: '', nivel: 'Principiante', lecciones: 0, ruta_assets: '', descripcion: ''
   });
 
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -114,11 +113,9 @@ export default function Admin() {
 
   const handleLogout = () => { localStorage.clear(); navigate('/'); };
 
-  // --- FUNCIONES DE CURSOS ---
-
   const openCreateModal = () => {
     setIsEditing(false);
-    setFormCurso({ titulo: '', instructor: '', nivel: 'Principiante', videos: 0, descripcion: '' });
+    setFormCurso({ titulo: '', instructor: '', nivel: 'Principiante', lecciones: 0, ruta_assets: '', descripcion: '' });
     setShowModal(true);
   };
 
@@ -129,7 +126,8 @@ export default function Admin() {
       titulo: curso.titulo,
       instructor: curso.instructor,
       nivel: curso.nivel,
-      videos: curso.videos,
+      lecciones: curso.lecciones || 0,
+      ruta_assets: curso.ruta_assets || '',
       descripcion: curso.descripcion || ''
     });
     setShowModal(true);
@@ -164,19 +162,13 @@ export default function Admin() {
   };
 
   const handleDeleteCurso = async (id) => {
-    if(!window.confirm("¿Seguro que quieres eliminar este curso? Esta acción no se puede deshacer.")) return;
-    
+    if(!window.confirm("¿Seguro que quieres eliminar este curso?")) return;
     try {
       const res = await fetch(`${API_URL}/api/courses/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-
-      if (res.ok) {
-        fetchData();
-      } else {
-        alert("Error al eliminar. Revisa los permisos del backend.");
-      }
+      if (res.ok) fetchData();
     } catch (error) {
       console.error("Error eliminando curso:", error);
     }
@@ -213,8 +205,7 @@ export default function Admin() {
         <div className="admin-main">
           <div className="admin-page-title">
             {seccion === 'dashboard' && `Panel de ${userRole}`}
-            {seccion === 'cursos' && 'Gestión de Contenidos'}
-            {seccion === 'usuarios' && 'Control de Usuarios'}
+            {seccion === 'cursos' && 'Catálogo de Contenidos'}
           </div>
 
           {seccion === 'dashboard' && (
@@ -229,7 +220,7 @@ export default function Admin() {
           {seccion === 'cursos' && (
             <div className="table-wrap">
               <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '600', color: 'var(--gray-500)' }}>CATÁLOGO VIGENTE</span>
+                <span style={{ fontWeight: '600', color: 'var(--gray-500)' }}>CURSOS REALES</span>
                 <button 
                   style={{ background: 'var(--blue-dark)', color: 'white', border: 'none', padding: '0.6rem 1.2rem', cursor: 'pointer', fontWeight: '600' }}
                   onClick={openCreateModal}
@@ -239,18 +230,18 @@ export default function Admin() {
               </div>
               <table>
                 <thead>
-                  <tr><th>Título</th><th>Instructor</th><th>Nivel</th><th>Videos</th><th>Acciones</th></tr>
+                  <tr><th>Título</th><th>Instructor</th><th>Material</th><th>Ruta Carpeta</th><th>Acciones</th></tr>
                 </thead>
                 <tbody>
                   {cursos.map(c => (
                     <tr key={c.id}>
                       <td style={{fontWeight: '600'}}>{c.titulo}</td>
                       <td>{c.instructor}</td>
-                      <td><span className="role-badge badge-user">{c.nivel}</span></td>
-                      <td>{c.videos} lecciones</td>
+                      <td>{c.lecciones} Diapositivas</td>
+                      <td style={{color: 'var(--blue-mid)', fontSize: '0.75rem'}}>{c.ruta_assets}</td>
                       <td>
                         <button className="btn-action btn-edit" onClick={() => openEditModal(c)}>Editar</button>
-                        <button className="btn-action btn-delete" onClick={() => handleDeleteCurso(c.id)}>Eliminar</button>
+                        <button className="btn-action btn-delete" onClick={() => handleDeleteCurso(c.id)}>Borrar</button>
                       </td>
                     </tr>
                   ))}
@@ -261,7 +252,7 @@ export default function Admin() {
 
           {seccion === 'usuarios' && userRole === 'Admin' && (
             <div className="table-wrap">
-              <div style={{ padding: '1.5rem' }}><span style={{ fontWeight: '600' }}>LISTADO DE ALUMNOS</span></div>
+              <div style={{ padding: '1.5rem' }}><span style={{ fontWeight: '600' }}>ALUMNOS</span></div>
               <table>
                 <thead>
                   <tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Certificados</th><th>Acciones</th></tr>
@@ -283,15 +274,20 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Modal Unificado */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3 className="modal-title">{isEditing ? 'Editar Curso' : 'Nuevo Curso'}</h3>
+            <h3 className="modal-title">{isEditing ? 'Editar Curso' : 'Vincular Nuevo Curso'}</h3>
             
             <div className="modal-group">
-              <label className="modal-label">Título</label>
-              <input className="modal-input" value={formCurso.titulo} onChange={e => setFormCurso({...formCurso, titulo: e.target.value})} />
+              <label className="modal-label">Nombre del Curso</label>
+              <input className="modal-input" value={formCurso.titulo} onChange={e => setFormCurso({...formCurso, titulo: e.target.value})} placeholder="Ej: Word desde Cero" />
+            </div>
+
+            <div className="modal-group">
+              <label className="modal-label">Ruta de Carpeta en Public</label>
+              <input className="modal-input" value={formCurso.ruta_assets} onChange={e => setFormCurso({...formCurso, ruta_assets: e.target.value})} placeholder="Ej: /assets/cursos/word" />
+              <small style={{fontSize:'0.65rem', color:'var(--gray-500)'}}>Asegúrate de que coincida con tu carpeta en VS Code.</small>
             </div>
 
             <div className="modal-group">
@@ -309,15 +305,15 @@ export default function Admin() {
                 </select>
               </div>
               <div>
-                <label className="modal-label">Videos</label>
-                <input type="number" className="modal-input" value={formCurso.videos} onChange={e => setFormCurso({...formCurso, videos: e.target.value})} />
+                <label className="modal-label">Cant. Diapositivas</label>
+                <input type="number" className="modal-input" value={formCurso.lecciones} onChange={e => setFormCurso({...formCurso, lecciones: e.target.value})} />
               </div>
             </div>
 
             <div className="modal-actions">
               <button className="btn-cancel" onClick={() => setShowModal(false)}>Cancelar</button>
               <button className="btn-save" onClick={handleSaveCurso} disabled={loading}>
-                {loading ? 'Procesando...' : (isEditing ? 'Guardar Cambios' : 'Crear Curso')}
+                {loading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear Curso')}
               </button>
             </div>
           </div>
