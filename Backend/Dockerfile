@@ -1,15 +1,15 @@
 FROM node:22-alpine
 WORKDIR /app
 
-# Al estar el Dockerfile dentro de Backend, copiamos lo que hay ahí
+# Copiamos archivos de dependencias
 COPY package*.json ./
 RUN npm install
 
-# Copiamos todo el contenido de la carpeta Backend
+# Copiamos el resto del código del Backend
 COPY . .
 
-# Exponemos el puerto de tu servidor
+# Exponemos el puerto que usa tu Express
 EXPOSE 8080
 
-# Comando para arrancar
+# COMANDO CORRECTO PARA BACKEND (Sin npm run build)
 CMD ["node", "server.js"]
