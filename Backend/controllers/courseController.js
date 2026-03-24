@@ -58,3 +58,21 @@ exports.updateCourse = async (req, res) => {
         res.status(400).json({ success: false, message: "Error al actualizar el curso" });
     }
 };
+
+// Eliminar un curso
+exports.deleteCourse = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const curso = await Course.findByPk(id);
+
+        if (!curso) {
+            return res.status(404).json({ success: false, message: "Curso no encontrado" });
+        }
+
+        await curso.destroy();
+        res.json({ success: true, message: "Curso eliminado correctamente" });
+    } catch (error) {
+        console.error("Error al eliminar curso:", error);
+        res.status(500).json({ success: false, message: "Error interno al eliminar" });
+    }
+};
