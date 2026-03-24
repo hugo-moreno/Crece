@@ -1,8 +1,15 @@
 FROM node:22-alpine
 WORKDIR /app
-COPY frontend/package*.json ./
+
+# Al estar ya en la carpeta frontend, usamos ./
+COPY package*.json ./
 RUN npm install
-COPY frontend/ .
+
+COPY . .
+
+# Para producción en Vite es mejor hacer el build
+RUN npm run build
+
+# Exponemos el puerto que usa Vite para el preview
 EXPOSE 5173
-# Si usas Vite, asegúrate de que el comando sea el correcto para producción
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
