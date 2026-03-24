@@ -8,15 +8,13 @@ import Quiz from './pages/Quiz/Quiz'
 import Resultado from './pages/Resultado/Resultado'
 import Certificado from './pages/Certificado/Certificado'
 import Admin from './pages/Admin/Admin'
-import Opiniones from './pages/Opiniones/Opiniones' // <-- Importante: Importar la nueva página
+import Opiniones from './pages/Opiniones/Opiniones'
 
-// --- Protección de Rutas para Usuarios ---
+// --- Protección de Rutas para Alumnos (User) ---
 function PrivateRoute({ children }) {
-  // Verificamos si existe el token en el storage
   const isAuthenticated = !!localStorage.getItem('token');
   
   if (!isAuthenticated) {
-    // Si no hay token, lo mandamos al login y limpiamos por si acaso
     localStorage.clear();
     return <Navigate to="/login" replace />;
   }
@@ -24,15 +22,19 @@ function PrivateRoute({ children }) {
   return children;
 }
 
-// --- Protección de Rutas para Admin ---
+// --- Protección de Rutas para Gestión (Admin y Staff) ---
 function AdminRoute({ children }) {
   const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role') || '';
+  // Usamos el rol guardado en localStorage (Admin o Staff)
+  const role = (localStorage.getItem('role') || '').toLowerCase();
   
   if (!token) return <Navigate to="/login" replace />;
   
-  // Validamos que sea admin (ignorando mayúsculas/minúsculas)
-  if (role.toLowerCase() !== 'admin') {
+  // CORRECCIÓN CLAVE: Permitir acceso si es admin O staff
+  const hasAccess = role === 'admin' || role === 'staff';
+  
+  if (!hasAccess) {
+    // Si es un alumno tratando de entrar a /admin, lo mandamos a su dashboard
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -48,10 +50,10 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
-        {/* Nueva Ruta para que tus compas escriban reseñas */}
+        {/* Ruta para reseñas */}
         <Route path="/opinar" element={<Opiniones />} />
         
-        {/* Rutas Protegidas (Requieren Login) */}
+        {/* Rutas Protegidas para Alumnos */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         
         {/* Ruta dinámica para los cursos (ID) */}
@@ -61,7 +63,7 @@ function App() {
         <Route path="/resultado/:id" element={<PrivateRoute><Resultado /></PrivateRoute>} />
         <Route path="/certificado/:id" element={<PrivateRoute><Certificado /></PrivateRoute>} />
         
-        {/* Rutas Especiales */}
+        {/* Rutas de Gestión: Ahora accesibles para Hugo (Staff) y Virginia (Admin) */}
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         
         {/* Redirección por defecto si la ruta no existe */}

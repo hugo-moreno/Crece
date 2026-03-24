@@ -181,12 +181,11 @@ export default function Dashboard() {
 
     if (!token) { navigate("/login"); return; }
 
-    // --- INTERRUPTOR DE REDIRECCIÓN (STAFF/ADMIN) ---
-    // Si el usuario es Staff o Admin, no debe estar aquí.
+    // --- PROTECCIÓN ANTI-BUCLE ---
     if (role === "Staff" || role === "Admin") {
-        console.log(`Rol ${role} detectado en Dashboard. Redirigiendo a /admin...`);
-        navigate("/admin");
-        return;
+        console.log(`Acceso administrativo (${role}) detectado. Redirigiendo a panel de control...`);
+        navigate("/admin", { replace: true });
+        return; // IMPORTANTE: Detenemos la ejecución aquí
     }
     
     try {
@@ -195,7 +194,7 @@ export default function Dashboard() {
       const userData = {
         id: payload.id || localUser?.id,
         nombre: payload.nombre || localUser?.nombre || "Usuario",
-        role: payload.role
+        role: role
       };
       setUsuario(userData);
 
@@ -213,7 +212,7 @@ export default function Dashboard() {
 
       if (userData.id) fetchStats();
     } catch (error) {
-      console.error("Error decodificando token:", error);
+      console.error("Error de sesión:", error);
       navigate("/login");
     }
   }, [navigate]);
