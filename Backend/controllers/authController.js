@@ -6,16 +6,19 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 
-// --- 0. CONFIGURACIÓN DE CORREO (USANDO RESEND PARA EVITAR BLOQUEOS) ---
-// Recuerda agregar RESEND_API_KEY en tus variables de Railway
+// --- 0. CONFIGURACIÓN DE CORREO (PUERTO 587 PARA SALTAR BLOQUEOS DE RAILWAY) ---
 const transporter = nodemailer.createTransport({
     host: "smtp.resend.com",
-    secure: true,
-    port: 465,
+    port: 587,
+    secure: false, // Debe ser false para usar STARTTLS en el puerto 587
     auth: {
         user: "resend",
         pass: process.env.RESEND_API_KEY
-    }
+    },
+    // Tiempos de espera optimizados
+    connectionTimeout: 10000, 
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 });
 
 // --- 1. REGISTRO DE USUARIOS ---
@@ -80,7 +83,6 @@ exports.forgotPassword = async (req, res) => {
         const resetUrl = `${baseUrl}/reset-password/${token}`;
 
         const mailOptions = {
-            // NOTA: Resend gratuito solo permite enviar desde onboarding@resend.dev
             from: "Crece Online <onboarding@resend.dev>", 
             to: user.email,
             subject: 'Recuperación de contraseña - Crece Online',
@@ -97,9 +99,11 @@ exports.forgotPassword = async (req, res) => {
             `
         };
 
+        // Verificamos conexión antes de enviar para ver errores en logs
+        await transporter.verify();
         await transporter.sendMail(mailOptions);
         
-        console.log(`✅ Correo enviado vía Resend a: ${user.email}`);
+        console.log(`✅ Correo enviado vía Resend (Puerto 587) a: ${user.email}`);
         res.json({ success: true, message: "Correo enviado correctamente." });
         
     } catch (error) {
