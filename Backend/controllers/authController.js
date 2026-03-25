@@ -3,23 +3,11 @@ const Inscripcion = require('../models/Inscripcion');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend'); // Nueva librería
 const { Op } = require('sequelize');
 
-// --- 0. CONFIGURACIÓN DE CORREO (PUERTO 587 PARA SALTAR BLOQUEOS DE RAILWAY) ---
-const transporter = nodemailer.createTransport({
-    host: "smtp.resend.com",
-    port: 587,
-    secure: false, // Debe ser false para usar STARTTLS en el puerto 587
-    auth: {
-        user: "resend",
-        pass: process.env.RESEND_API_KEY
-    },
-    // Tiempos de espera optimizados
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-});
+// --- 0. CONFIGURACIÓN DE RESEND SDK (EL PLAN DEFINITIVO) ---
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // --- 1. REGISTRO DE USUARIOS ---
 exports.register = async (req, res) => {
@@ -82,32 +70,32 @@ exports.forgotPassword = async (req, res) => {
         const baseUrl = rawUrl.replace(/\/$/, ""); 
         const resetUrl = `${baseUrl}/reset-password/${token}`;
 
-        const mailOptions = {
-            from: "Crece Online <onboarding@resend.dev>", 
-            to: user.email,
+        // --- ENVÍO MEDIANTE SDK (HTTP) ---
+        const { data, error } = await resend.emails.send({
+            from: "Crece Online <onboarding@resend.dev>",
+            to: [user.email],
             subject: 'Recuperación de contraseña - Crece Online',
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
                     <h2 style="color: #0d2a4a; text-align: center;">Crece Online</h2>
                     <p>Hola <strong>${user.nombre_completo}</strong>,</p>
-                    <p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el botón de abajo:</p>
+                    <p>Haz clic en el botón de abajo para restablecer tu contraseña:</p>
                     <div style="text-align: center; margin: 30px 0;">
                         <a href="${resetUrl}" style="background: #0d2a4a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
                     </div>
-                    <p style="color: #777; font-size: 0.8em; text-align: center;">Este enlace es válido por 1 hora.</p>
                 </div>
             `
-        };
+        });
 
-        // Verificamos conexión antes de enviar para ver errores en logs
-        await transporter.verify();
-        await transporter.sendMail(mailOptions);
+        if (error) {
+            throw new Error(error.message);
+        }
         
-        console.log(`✅ Correo enviado vía Resend (Puerto 587) a: ${user.email}`);
+        console.log(`✅ Correo enviado vía SDK a: ${user.email}`, data);
         res.json({ success: true, message: "Correo enviado correctamente." });
         
     } catch (error) {
-        console.error("❌ ERROR REAL EN EL ENVÍO:", error);
+        console.error("❌ ERROR CRÍTICO SDK:", error);
         res.status(500).json({ 
             success: false, 
             message: "Error al procesar el envío: " + error.message 
